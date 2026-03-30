@@ -1,0 +1,225 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/The-AI-Alliance/cube-registry/registry-schema.json",
+  "title": "CUBE Registry Entry",
+  "description": "Schema for a CUBE-compliant benchmark registry entry. Author-provided fields only — CI-derived fields (status, resources, task_count, etc.) must not be present in PRs.",
+  "type": "object",
+  "required": ["id", "name", "version", "description", "package", "authors", "legal"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Globally unique slug. Must match the filename (entries/<id>.yaml). Lowercase, hyphens allowed, no spaces.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable display name.",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "description": "PyPI package version. Must match the published version exactly.",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+].+)?$"
+    },
+    "description": {
+      "type": "string",
+      "description": "One-paragraph summary of what the benchmark tests.",
+      "minLength": 10
+    },
+    "package": {
+      "type": "string",
+      "description": "PyPI package name for pip install.",
+      "minLength": 1
+    },
+    "authors": {
+      "type": "array",
+      "description": "List of cube developers submitting this entry. At least one required. Populates OWNERS.yaml on merge.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["github"],
+        "additionalProperties": false,
+        "properties": {
+          "github": {
+            "type": "string",
+            "description": "GitHub handle of the author.",
+            "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the author."
+          }
+        }
+      }
+    },
+    "legal": {
+      "type": "object",
+      "description": "License and legal information.",
+      "required": ["wrapper_license"],
+      "additionalProperties": false,
+      "properties": {
+        "wrapper_license": {
+          "type": "string",
+          "description": "SPDX identifier for the cube wrapper code. The cube developer owns this.",
+          "minLength": 1
+        },
+        "benchmark_license": {
+          "type": "object",
+          "description": "License information for the underlying benchmark (unverified — self-reported).",
+          "additionalProperties": false,
+          "properties": {
+            "reported": {
+              "type": "string",
+              "description": "SPDX identifier as understood by the cube developer. Labelled 'reported' in UI."
+            },
+            "source_url": {
+              "type": "string",
+              "description": "URL to the benchmark's official license page.",
+              "format": "uri"
+            },
+            "verified_by_original_authors": {
+              "type": "boolean",
+              "description": "CI-derived: set to true only when submitter matches known-authors.yaml. Do not set manually.",
+              "const": false
+            }
+          }
+        },
+        "notices": {
+          "type": "array",
+          "description": "Structured legal notices for risks beyond the license field.",
+          "items": {
+            "type": "object",
+            "required": ["type", "description"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["third_party_data", "software_registration", "live_website_clone", "attribution"],
+                "description": "Type of legal notice."
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable explanation of the notice."
+              },
+              "url": {
+                "type": "string",
+                "description": "Optional URL for more information.",
+                "format": "uri"
+              }
+            }
+          }
+        }
+      }
+    },
+    "paper": {
+      "type": "string",
+      "description": "arXiv or venue URL for the benchmark paper.",
+      "format": "uri"
+    },
+    "tags": {
+      "type": "array",
+      "description": "Searchable tags. Use standard values where possible.",
+      "items": {
+        "type": "string",
+        "enum": ["web", "coding", "os", "gui", "mobile", "science", "math", "multi-agent", "desktop", "multimodal", "nlp", "reasoning", "robotics", "games"]
+      }
+    },
+    "getting_started_url": {
+      "type": "string",
+      "description": "Link to documentation or quick-start guide.",
+      "format": "uri"
+    },
+    "supported_infra": {
+      "type": "array",
+      "description": "Cloud providers the slow check should run on. Defaults to [aws] if not specified.",
+      "items": {
+        "type": "string",
+        "enum": ["aws", "azure", "gcp", "local"]
+      },
+      "minItems": 1
+    },
+    "max_concurrent_tasks": {
+      "type": "integer",
+      "description": "Guideline for maximum number of parallel tasks. Default: 1.",
+      "minimum": 1
+    },
+    "parallelization_mode": {
+      "type": "string",
+      "description": "How the benchmark supports parallelization.",
+      "enum": ["sequential", "task-parallel", "benchmark-parallel"]
+    },
+    "status": {
+      "type": "string",
+      "description": "CI-managed status. Authors may submit 'archived' to retire an entry; CI sets 'active' or 'degraded'.",
+      "enum": ["active", "degraded", "archived"]
+    },
+    "resources": {
+      "type": "array",
+      "description": "CI-derived: JSON-serialized ResourceConfig objects from benchmark.resources. CI overwrites on every check.",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "ResourceConfig subclass name (e.g. VMResourceConfig, DockerResourceConfig)."
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "task_count": {
+      "type": "integer",
+      "description": "CI-derived: number of tasks returned by benchmark.tasks().",
+      "minimum": 0
+    },
+    "has_debug_task": {
+      "type": "boolean",
+      "description": "CI-derived: true if benchmark declares at least one debug task."
+    },
+    "has_debug_agent": {
+      "type": "boolean",
+      "description": "CI-derived: true if Benchmark class has make_debug_agent() method."
+    },
+    "action_space": {
+      "type": "array",
+      "description": "CI-derived: tool names and schemas from tools/list on a reset task.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "CI-derived: feature flags detected by introspecting the benchmark/task classes.",
+      "additionalProperties": false,
+      "properties": {
+        "async": {
+          "type": "boolean",
+          "description": "True if benchmark overrides async_step() or async_reset()."
+        },
+        "streaming": {
+          "type": "boolean",
+          "description": "True if benchmark overrides stream_action()."
+        },
+        "multi_agent": {
+          "type": "boolean",
+          "description": "True if task class is a MultiAgentTask subclass."
+        },
+        "multi_dim_reward": {
+          "type": "boolean",
+          "description": "True if evaluation response includes reward_breakdown."
+        }
+      }
+    },
+    "stress_results_url": {
+      "type": "string",
+      "description": "CI-derived: path to the latest stress-results JSON. Set by slow check."
+    }
+  }
+}

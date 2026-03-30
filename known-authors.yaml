@@ -1,0 +1,10 @@
+# known-authors.yaml — manually maintained by registry maintainers
+# Maps benchmark id → list of GitHub handles of the original paper/benchmark authors.
+# When a submitter's GitHub handle appears in both authors[] and this list,
+# legal.benchmark_license.verified_by_original_authors is set to true by CI.
+# Add entries here before anticipated submissions to protect well-known benchmark IDs.
+#
+# Example:
+# osworld:
+#   - xlang-ai
+#   - tianbowang
