@@ -343,6 +343,25 @@
   </section>
   {% endif %}
 
+  <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
+  <section class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <h2 class="text-lg font-bold">Registry Entry (YAML)</h2>
+      <div class="flex items-center gap-2">
+        {% if entry._github_yaml_url %}
+        <a href="{{ entry._github_yaml_url }}" target="_blank" rel="noopener"
+           class="text-xs text-gray-500 hover:text-indigo-700 underline">View on GitHub →</a>
+        {% endif %}
+        <button
+          class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium transition-colors"
+          onclick="copyYaml()" id="copy-yaml-btn">Copy</button>
+      </div>
+    </div>
+    <div class="relative">
+      <pre id="yaml-content" class="text-xs font-mono bg-gray-950 text-green-300 p-5 overflow-x-auto leading-relaxed max-h-96 overflow-y-auto">{{ entry._raw_yaml }}</pre>
+    </div>
+  </section>
+
 </main>
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
@@ -361,9 +380,19 @@ function copyPipInstall() {
     const btn = document.getElementById('copy-btn');
     btn.textContent = 'Copied!';
     btn.classList.add('bg-green-700');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('bg-green-700'); }, 2000);
+  });
+}
+
+function copyYaml() {
+  const text = document.getElementById('yaml-content').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-yaml-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('bg-green-100', 'text-green-700');
     setTimeout(() => {
       btn.textContent = 'Copy';
-      btn.classList.remove('bg-green-700');
+      btn.classList.remove('bg-green-100', 'text-green-700');
     }, 2000);
   });
 }

@@ -116,14 +116,14 @@
       <div class="text-xs text-gray-500 mt-1">Infra</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div class="text-2xl font-bold text-red-500">
-        No
+      <div class="text-2xl font-bold text-green-600">
+        Yes
       </div>
       <div class="text-xs text-gray-500 mt-1">Debug Task</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div class="text-2xl font-bold text-gray-400">
-        No
+      <div class="text-2xl font-bold text-green-600">
+        Yes
       </div>
       <div class="text-xs text-gray-500 mt-1">Debug Agent</div>
     </div>
@@ -201,7 +201,7 @@
           <span class="ml-2 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium border border-yellow-200">Self-reported — verify before commercial use</span>
           
           
-          <a href="https://github.com/xlangai/OSWorld/blob/main/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
+          <a href="https://creativecommons.org/licenses/by/4.0/legalcode" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
           
         </div>
       </div>
@@ -259,6 +259,68 @@
   </section>
   
 
+  <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
+  <section class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <h2 class="text-lg font-bold">Registry Entry (YAML)</h2>
+      <div class="flex items-center gap-2">
+        
+        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/osworld.yaml" target="_blank" rel="noopener"
+           class="text-xs text-gray-500 hover:text-indigo-700 underline">View on GitHub →</a>
+        
+        <button
+          class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium transition-colors"
+          onclick="copyYaml()" id="copy-yaml-btn">Copy</button>
+      </div>
+    </div>
+    <div class="relative">
+      <pre id="yaml-content" class="text-xs font-mono bg-gray-950 text-green-300 p-5 overflow-x-auto leading-relaxed max-h-96 overflow-y-auto">id: osworld
+name: OSWorld
+version: "0.1.0"
+description: >
+  OSWorld benchmarks multimodal agents on open-ended computer tasks executed
+  inside a real Ubuntu 22.04 desktop environment. Tasks span 369 scenarios
+  across applications such as Chrome, LibreOffice, Thunderbird, and the OS
+  shell. Each task launches a fresh VM from a qcow2 image, restores a
+  snapshot, runs setup scripts, and evaluates the final desktop state.
+package: osworld-cube
+
+# Note: not yet published on PyPI. Install from source:
+#   pip install git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/osworld-cube
+
+authors:
+  - github: recursix
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: CC-BY-4.0
+    source_url: "https://creativecommons.org/licenses/by/4.0/legalcode"
+  notices:
+    - type: software_registration
+      description: "Ubuntu desktop with pre-installed commercial applications including LibreOffice, Thunderbird, and others"
+
+paper: "https://arxiv.org/abs/2404.07972"
+tags: [os, gui, desktop, multimodal]
+
+supported_infra: [aws]
+max_concurrent_tasks: 1
+parallelization_mode: benchmark-parallel
+
+resources:
+  - type: VMResourceConfig
+    name: osworld-ubuntu-vm
+    source_url: "https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip"
+    image_format: qcow2
+    scope: task
+
+status: active
+has_debug_task: true
+has_debug_agent: true
+</pre>
+    </div>
+  </section>
+
 </main>
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
@@ -266,7 +328,7 @@
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="../" class="underline">All benchmarks</a> ·
-    Generated 2026-03-30 23:04 UTC
+    Generated 2026-03-30 23:34 UTC
   </p>
 </footer>
 
@@ -277,9 +339,19 @@ function copyPipInstall() {
     const btn = document.getElementById('copy-btn');
     btn.textContent = 'Copied!';
     btn.classList.add('bg-green-700');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('bg-green-700'); }, 2000);
+  });
+}
+
+function copyYaml() {
+  const text = document.getElementById('yaml-content').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-yaml-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('bg-green-100', 'text-green-700');
     setTimeout(() => {
       btn.textContent = 'Copy';
-      btn.classList.remove('bg-green-700');
+      btn.classList.remove('bg-green-100', 'text-green-700');
     }, 2000);
   });
 }

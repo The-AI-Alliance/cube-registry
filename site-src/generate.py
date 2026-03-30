@@ -74,6 +74,23 @@ def enrich_entry(entry: dict[str, Any]) -> dict[str, Any]:
     """Add computed display fields to an entry dict."""
     e = dict(entry)
 
+    # Raw YAML text (for the YAML viewer on the detail page)
+    path = e.pop("_path", None)
+    if path:
+        try:
+            e["_raw_yaml"] = Path(path).read_text()
+        except Exception:
+            e["_raw_yaml"] = ""
+        e["_path"] = path
+        # GitHub link to the YAML file (view + raw)
+        rel = Path(path).relative_to(REPO_ROOT)
+        e["_github_yaml_url"] = f"https://github.com/The-AI-Alliance/cube-registry/blob/main/{rel}"
+        e["_github_raw_yaml_url"] = f"https://raw.githubusercontent.com/The-AI-Alliance/cube-registry/main/{rel}"
+    else:
+        e["_raw_yaml"] = ""
+        e["_github_yaml_url"] = ""
+        e["_github_raw_yaml_url"] = ""
+
     # Status defaults
     status = e.get("status", "active") or "active"
     e["status"] = status

@@ -101,6 +101,18 @@
     </div>
 
     <button onclick="clearFilters()" class="text-xs text-gray-400 hover:text-gray-600 underline ml-1">Clear filters</button>
+
+    <!-- View toggle -->
+    <div class="flex items-center gap-1 border border-gray-200 rounded-lg overflow-hidden ml-auto">
+      <button id="view-cards-btn" onclick="setView('cards')"
+        class="text-xs px-3 py-1.5 bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors">
+        Cards
+      </button>
+      <button id="view-table-btn" onclick="setView('table')"
+        class="text-xs px-3 py-1.5 bg-white text-gray-600 font-medium hover:bg-gray-50 transition-colors">
+        Table
+      </button>
+    </div>
   </div>
 </div>
 
@@ -183,6 +195,78 @@
     <p class="text-xl mb-2">No benchmarks match your filters.</p>
     <button onclick="clearFilters()" class="text-indigo-600 underline text-sm">Clear filters</button>
   </div>
+
+  <!-- ── Table view ──────────────────────────────────────────────────────────── -->
+  <div id="table-view" class="hidden overflow-x-auto">
+    <table class="min-w-full bg-white rounded-xl border border-gray-200 text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wider">
+          <th class="px-4 py-3">Benchmark</th>
+          <th class="px-4 py-3">Version</th>
+          <th class="px-4 py-3">Tags</th>
+          <th class="px-4 py-3">Tasks</th>
+          <th class="px-4 py-3">Infra</th>
+          <th class="px-4 py-3">Debug</th>
+          <th class="px-4 py-3">License</th>
+          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        {% for entry in entries %}
+        <tr class="table-row border-b border-gray-100 last:border-0 hover:bg-gray-50"
+            data-id="{{ entry.id }}"
+            data-tags="{{ (entry.tags or []) | join(' ') }}"
+            data-features="{{ (entry.features_list or []) | join(' ') }}"
+            data-infra="{{ (entry.supported_infra or []) | join(' ') }}"
+            data-status="{{ entry.status }}"
+            data-name="{{ entry.name | lower }}"
+            data-description="{{ (entry.description or '') | lower }}">
+          <td class="px-4 py-3">
+            <a href="{{ entry.id }}/" class="font-semibold text-gray-900 hover:text-indigo-700">{{ entry.name }}</a>
+            <p class="text-xs text-gray-400 font-mono">{{ entry.id }}</p>
+          </td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-600">{{ entry.version }}</td>
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap gap-1">
+              {% for chip in entry.tag_chips %}
+              <span class="text-xs px-1.5 py-0.5 rounded-full font-medium {{ chip.cls }}">{{ chip.label }}</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td class="px-4 py-3 text-gray-600">
+            {% if entry.task_count is not none %}{{ entry.task_count }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-600 font-mono text-xs">
+            {{ (entry.get('supported_infra') or ['aws']) | join(', ') }}
+          </td>
+          <td class="px-4 py-3 text-center">
+            {% if entry.has_debug_task %}
+            <span class="text-green-600 font-bold" title="Has debug task">✓</span>
+            {% else %}
+            <span class="text-gray-300" title="No debug task">—</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-600">
+            {{ entry.bench_license_reported or entry.legal.get('wrapper_license', '—') }}
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full {{ entry.status_badge.bg }} {{ entry.status_badge.text }}">
+              {{ entry.status_badge.label }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right text-xs">
+            <a href="{{ entry.id }}/" class="text-indigo-600 hover:underline">Details →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div id="table-no-results" class="hidden text-center py-20 text-gray-400">
+      <p class="text-xl mb-2">No benchmarks match your filters.</p>
+      <button onclick="clearFilters()" class="text-indigo-600 underline text-sm">Clear filters</button>
+    </div>
+  </div>
 </main>
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
@@ -196,6 +280,34 @@
 </footer>
 
 <script>
+  // ── View toggle ────────────────────────────────────────────────────────────
+  let currentView = 'cards';
+
+  function setView(view) {
+    currentView = view;
+    const cardGrid = document.getElementById('card-grid');
+    const tableView = document.getElementById('table-view');
+    const cardBtn = document.getElementById('view-cards-btn');
+    const tableBtn = document.getElementById('view-table-btn');
+
+    if (view === 'cards') {
+      cardGrid.classList.remove('hidden');
+      tableView.classList.add('hidden');
+      cardBtn.classList.add('bg-indigo-600', 'text-white');
+      cardBtn.classList.remove('bg-white', 'text-gray-600');
+      tableBtn.classList.remove('bg-indigo-600', 'text-white');
+      tableBtn.classList.add('bg-white', 'text-gray-600');
+    } else {
+      cardGrid.classList.add('hidden');
+      tableView.classList.remove('hidden');
+      tableBtn.classList.add('bg-indigo-600', 'text-white');
+      tableBtn.classList.remove('bg-white', 'text-gray-600');
+      cardBtn.classList.remove('bg-indigo-600', 'text-white');
+      cardBtn.classList.add('bg-white', 'text-gray-600');
+    }
+    applyFilters();
+  }
+
   // ── Filter state ───────────────────────────────────────────────────────────
   const activeFilters = { tags: new Set(), features: new Set(), statuses: new Set() };
 
@@ -237,44 +349,49 @@
 
   function filterCards() { applyFilters(); }
 
+  function matchesFilters(el, query) {
+    const tags = el.dataset.tags || '';
+    const features = el.dataset.features || '';
+    const status = el.dataset.status || '';
+    const name = el.dataset.name || '';
+    const description = el.dataset.description || '';
+    const id = el.dataset.id || '';
+
+    const matchSearch = !query ||
+      name.includes(query) || description.includes(query) ||
+      id.includes(query) || tags.includes(query);
+    const matchTags = activeFilters.tags.size === 0 ||
+      [...activeFilters.tags].every(t => tags.split(' ').includes(t));
+    const matchFeatures = activeFilters.features.size === 0 ||
+      [...activeFilters.features].every(f => features.split(' ').includes(f));
+    const matchStatus = activeFilters.statuses.size === 0 ||
+      activeFilters.statuses.has(status);
+
+    return matchSearch && matchTags && matchFeatures && matchStatus;
+  }
+
   function applyFilters() {
     const query = (document.getElementById('search-input').value || '').toLowerCase().trim();
+
+    // Filter cards
     const cards = document.querySelectorAll('#card-grid article');
-    let visible = 0;
-
+    let cardVisible = 0;
     cards.forEach(card => {
-      const tags = card.dataset.tags || '';
-      const features = card.dataset.features || '';
-      const status = card.dataset.status || '';
-      const name = card.dataset.name || '';
-      const description = card.dataset.description || '';
-      const id = card.dataset.id || '';
-
-      // Search filter
-      const matchSearch = !query ||
-        name.includes(query) ||
-        description.includes(query) ||
-        id.includes(query) ||
-        tags.includes(query);
-
-      // Tag filter (AND logic — all selected tags must be present)
-      const matchTags = activeFilters.tags.size === 0 ||
-        [...activeFilters.tags].every(t => tags.split(' ').includes(t));
-
-      // Feature filter (AND logic)
-      const matchFeatures = activeFilters.features.size === 0 ||
-        [...activeFilters.features].every(f => features.split(' ').includes(f));
-
-      // Status filter (OR logic)
-      const matchStatus = activeFilters.statuses.size === 0 ||
-        activeFilters.statuses.has(status);
-
-      const show = matchSearch && matchTags && matchFeatures && matchStatus;
+      const show = matchesFilters(card, query);
       card.style.display = show ? '' : 'none';
-      if (show) visible++;
+      if (show) cardVisible++;
     });
+    document.getElementById('no-results').style.display = cardVisible === 0 ? '' : 'none';
 
-    document.getElementById('no-results').style.display = visible === 0 ? '' : 'none';
+    // Filter table rows
+    const rows = document.querySelectorAll('#table-body .table-row');
+    let tableVisible = 0;
+    rows.forEach(row => {
+      const show = matchesFilters(row, query);
+      row.style.display = show ? '' : 'none';
+      if (show) tableVisible++;
+    });
+    document.getElementById('table-no-results').style.display = tableVisible === 0 ? '' : 'none';
   }
 
   function clearFilters() {

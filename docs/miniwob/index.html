@@ -197,6 +197,56 @@
   </section>
   
 
+  <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
+  <section class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <h2 class="text-lg font-bold">Registry Entry (YAML)</h2>
+      <div class="flex items-center gap-2">
+        
+        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/miniwob.yaml" target="_blank" rel="noopener"
+           class="text-xs text-gray-500 hover:text-indigo-700 underline">View on GitHub →</a>
+        
+        <button
+          class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium transition-colors"
+          onclick="copyYaml()" id="copy-yaml-btn">Copy</button>
+      </div>
+    </div>
+    <div class="relative">
+      <pre id="yaml-content" class="text-xs font-mono bg-gray-950 text-green-300 p-5 overflow-x-auto leading-relaxed max-h-96 overflow-y-auto">id: miniwob
+name: MiniWob++
+version: "1.0.0"
+description: >
+  MiniWob++ (Mini World of Bits++) is a collection of 125 browser-based
+  web-interaction tasks ranging from simple button clicks to multi-step form
+  filling. The CUBE wrapper starts a local HTTP server that serves the MiniWoB
+  task pages and exposes them via a browser tool; each task runs independently
+  with no shared state.
+package: miniwob-cube
+
+# Note: not yet published on PyPI. Install from source:
+#   pip install git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/miniwob
+
+authors:
+  - github: recursix
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: MIT
+    source_url: "https://github.com/Farama-Foundation/miniwob-plusplus/blob/master/LICENSE"
+
+paper: "https://arxiv.org/abs/1802.08802"
+tags: [web, gui]
+
+parallelization_mode: task-parallel
+
+status: active
+has_debug_task: false
+has_debug_agent: false
+</pre>
+    </div>
+  </section>
+
 </main>
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
@@ -204,7 +254,7 @@
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="../" class="underline">All benchmarks</a> ·
-    Generated 2026-03-30 23:04 UTC
+    Generated 2026-03-30 23:34 UTC
   </p>
 </footer>
 
@@ -215,9 +265,19 @@ function copyPipInstall() {
     const btn = document.getElementById('copy-btn');
     btn.textContent = 'Copied!';
     btn.classList.add('bg-green-700');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('bg-green-700'); }, 2000);
+  });
+}
+
+function copyYaml() {
+  const text = document.getElementById('yaml-content').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-yaml-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('bg-green-100', 'text-green-700');
     setTimeout(() => {
       btn.textContent = 'Copy';
-      btn.classList.remove('bg-green-700');
+      btn.classList.remove('bg-green-100', 'text-green-700');
     }, 2000);
   });
 }
