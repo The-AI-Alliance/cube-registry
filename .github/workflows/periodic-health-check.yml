@@ -1,0 +1,116 @@
+name: Periodic Health Check
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"  # Every Monday at 09:00 UTC
+  workflow_dispatch:       # Allow manual trigger
+
+jobs:
+  health-check:
+    name: Health check all entries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # to update status: degraded
+      issues: write    # to open/update issues for degraded entries
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install "ruamel.yaml" pyyaml
+
+      - name: Run health check
+        id: health
+        run: |
+          python scripts/health_check.py --update-status 2>&1 | tee /tmp/health-output.txt
+          EXIT=${PIPESTATUS[0]}
+          echo "exit_code=$EXIT" >> $GITHUB_OUTPUT
+          exit 0  # don't fail the step here; we handle failures below
+
+      - name: Commit degraded status updates
+        run: |
+          git config user.name  "cube-registry-bot"
+          git config user.email "cube-registry-bot@users.noreply.github.com"
+          git add entries/
+          git diff --cached --quiet && echo "No status changes" || \
+            git commit -s -m "ci: mark degraded entries from health check [skip ci]"
+          git push
+
+      - name: Parse failed entries and open issues
+        if: steps.health.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - <<'PYEOF'
+          import re, subprocess, yaml, os
+          from pathlib import Path
+
+          output = Path("/tmp/health-output.txt").read_text()
+
+          # Parse failed entry IDs from health check output
+          # Format: ::error::Health check failed for 'id': reason
+          failed = {}
+          for m in re.finditer(r"::error::Health check failed for '([^']+)': (.+)", output):
+              entry_id, reason = m.group(1), m.group(2)
+              failed[entry_id] = reason
+
+          if not failed:
+              print("No failures found in output")
+              exit(0)
+
+          # Get existing issues to avoid duplicates
+          result = subprocess.run(
+              ["gh", "issue", "list", "--label", "health-check-failure",
+               "--state", "open", "--json", "title,number"],
+              capture_output=True, text=True, check=True
+          )
+          import json
+          existing_issues = {i["title"]: i["number"] for i in json.loads(result.stdout or "[]")}
+
+          for entry_id, reason in failed.items():
+              # Get authors from OWNERS.yaml
+              owners_path = Path("OWNERS.yaml")
+              owners = yaml.safe_load(owners_path.read_text()) or {} if owners_path.exists() else {}
+              entry_owners = owners.get(entry_id, [])
+              authors_str = " ".join(f"@{h}" for h in entry_owners) if entry_owners else "(no registered owners)"
+
+              title = f"Health check failed: {entry_id}"
+              body = f"""## Health check failure
+
+          **Benchmark:** {entry_id}
+          **Authors:** {authors_str}
+          **Failure:** {reason}
+
+          The weekly health check detected a problem with this entry.
+          The entry status has been automatically set to `degraded`.
+
+          Please investigate and update your entry if needed.
+          Once fixed, the status will be restored to `active` on the next health check.
+          """
+
+              if title in existing_issues:
+                  # Update existing issue
+                  issue_num = existing_issues[title]
+                  subprocess.run(
+                      ["gh", "issue", "comment", str(issue_num), "--body",
+                       f"Health check still failing as of {__import__('datetime').datetime.utcnow().date()}: {reason}"],
+                      check=True
+                  )
+                  print(f"Updated existing issue #{issue_num} for {entry_id}")
+              else:
+                  # Open new issue
+                  subprocess.run(
+                      ["gh", "issue", "create",
+                       "--title", title,
+                       "--body", body,
+                       "--label", "health-check-failure"],
+                      check=True
+                  )
+                  print(f"Opened new issue for {entry_id}")
+          PYEOF

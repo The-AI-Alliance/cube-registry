@@ -1,0 +1,194 @@
+name: Slow Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "entries/*.yaml"
+
+jobs:
+  # ── Determine which entries need slow check ───────────────────────────────
+  detect-changes:
+    name: Detect changes requiring slow check
+    runs-on: ubuntu-latest
+    outputs:
+      entries_matrix: ${{ steps.build-matrix.outputs.matrix }}
+      has_entries: ${{ steps.build-matrix.outputs.has_entries }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # need previous commit to diff
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Find entries needing slow check
+        id: build-matrix
+        run: |
+          python - <<'PYEOF'
+          import subprocess, json, sys
+          from pathlib import Path
+
+          # Trigger fields: re-run slow check if any of these changed
+          TRIGGER_FIELDS = {"version:", "package:", "image_url:", "supported_infra:"}
+
+          # Get changed entry files
+          result = subprocess.run(
+              ["git", "diff", "--name-only", "HEAD~1", "HEAD", "--", "entries/*.yaml"],
+              capture_output=True, text=True
+          )
+          changed = [p for p in result.stdout.splitlines() if p.endswith(".yaml")]
+
+          matrix_entries = []
+          for filepath in changed:
+              p = Path(filepath)
+              if not p.exists():
+                  continue  # deleted entry
+
+              # Check if trigger fields changed
+              diff_result = subprocess.run(
+                  ["git", "diff", "HEAD~1", "HEAD", "--", filepath],
+                  capture_output=True, text=True
+              )
+              diff = diff_result.stdout
+              if not any(f in diff for f in TRIGGER_FIELDS):
+                  print(f"Skipping {filepath}: no trigger fields changed")
+                  continue
+
+              # Load entry to get supported_infra
+              import yaml
+              with open(filepath) as f:
+                  entry = yaml.safe_load(f)
+
+              providers = entry.get("supported_infra", ["aws"])
+              benchmark_id = entry.get("id", p.stem)
+
+              for provider in providers:
+                  matrix_entries.append({
+                      "entry": filepath,
+                      "id": benchmark_id,
+                      "provider": provider,
+                  })
+              print(f"Queued {filepath} for providers: {providers}")
+
+          has_entries = len(matrix_entries) > 0
+          matrix = json.dumps({"include": matrix_entries}) if matrix_entries else json.dumps({"include": []})
+
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"matrix={matrix}\n")
+              f.write(f"has_entries={'true' if has_entries else 'false'}\n")
+          PYEOF
+
+  # ── Run slow check per entry × provider ──────────────────────────────────
+  slow-compliance:
+    name: Slow check — ${{ matrix.id }} on ${{ matrix.provider }}
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_entries == 'true'
+    strategy:
+      fail-fast: false   # continue other checks even if one fails
+      matrix: ${{ fromJson(needs.detect-changes.outputs.entries_matrix) }}
+
+    permissions:
+      contents: write    # to commit stress results
+      issues: write      # to open failure issues
+
+    env:
+      # Cloud credentials — injected here, NOT in quick-check.
+      # Benchmark code runs inside the provisioned VM, never on this runner.
+      AWS_ACCESS_KEY_ID:      ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION:     ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
+      AZURE_SUBSCRIPTION_ID:  ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_ID:        ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET:    ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID:        ${{ secrets.AZURE_TENANT_ID }}
+      GCP_SA_KEY:             ${{ secrets.GCP_SA_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install orchestration dependencies
+        run: pip install pyyaml "ruamel.yaml"
+
+      - name: Run slow check
+        id: slow-check
+        run: |
+          python scripts/slow_check.py \
+            --entry "${{ matrix.entry }}" \
+            --provider "${{ matrix.provider }}"
+
+      - name: Commit stress results
+        if: success()
+        run: |
+          git config user.name  "cube-registry-bot"
+          git config user.email "cube-registry-bot@users.noreply.github.com"
+          git add stress-results/ entries/
+          git diff --cached --quiet || \
+            git commit -s -m "ci: update stress results for ${{ matrix.id }} (${{ matrix.provider }})"
+          git push
+
+      - name: Get entry authors on failure
+        id: get-authors
+        if: failure()
+        run: |
+          python - <<'PYEOF'
+          import yaml, subprocess, os
+          with open("${{ matrix.entry }}") as f:
+              entry = yaml.safe_load(f)
+          authors = entry.get("authors", [])
+          handles = " ".join(f"@{a['github']}" for a in authors if a.get("github"))
+          # Also check OWNERS.yaml
+          try:
+              result = subprocess.run(
+                  ["git", "show", "origin/main:OWNERS.yaml"],
+                  capture_output=True, text=True, check=True
+              )
+              owners = yaml.safe_load(result.stdout) or {}
+              entry_owners = owners.get("${{ matrix.id }}", [])
+              for h in entry_owners:
+                  if f"@{h}" not in handles:
+                      handles += f" @{h}"
+          except Exception:
+              pass
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"authors={handles}\n")
+          PYEOF
+
+      - name: Open GitHub issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="Slow check failed: ${{ matrix.id }} on ${{ matrix.provider }}"
+          BODY="## Slow check failure
+
+          **Benchmark:** ${{ matrix.id }}
+          **Provider:** ${{ matrix.provider }}
+          **Commit:** ${{ github.sha }}
+          **Authors:** ${{ steps.get-authors.outputs.authors }}
+
+          The slow compliance check failed for \`${{ matrix.entry }}\` on \`${{ matrix.provider }}\`.
+
+          Please investigate and update your entry. The entry remains in the registry,
+          but platforms may filter on slow check status.
+
+          [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "slow-check-failure" \
+            --repo "${{ github.repository }}"

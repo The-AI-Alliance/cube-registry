@@ -1,0 +1,125 @@
+name: Quick Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Job 1: Ownership check ────────────────────────────────────────────────
+  ownership-check:
+    name: ownership-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history for git show origin/main
+
+      - name: Fetch origin/main
+        run: git fetch origin main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          separator: " "
+
+      - name: Run ownership check
+        run: |
+          python scripts/ownership_check.py \
+            --pr-author "${{ github.event.pull_request.user.login }}" \
+            --changed-files ${{ steps.changed-files.outputs.all_changed_files }}
+
+  # ── Job 2: Quick compliance check ────────────────────────────────────────
+  quick-compliance:
+    name: quick-compliance
+    runs-on: ubuntu-latest
+    # IMPORTANT: No cloud credentials injected here (security boundary).
+    # Package install and import run inside a throwaway Docker container.
+    needs: ownership-check
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Get changed entry files
+        id: changed-entries
+        uses: tj-actions/changed-files@v44
+        with:
+          files: "entries/*.yaml"
+          separator: "\n"
+
+      - name: Skip if no entry files changed
+        if: steps.changed-entries.outputs.any_changed != 'true'
+        run: |
+          echo "No entry files changed. Skipping quick compliance check."
+          exit 0
+
+      - name: Set up Python (host — for orchestration only)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install orchestration dependencies
+        run: pip install jsonschema ruamel.yaml pyyaml
+
+      - name: Run quick check for each changed entry
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -e
+          FAILED=0
+          ENTRIES="${{ steps.changed-entries.outputs.all_changed_files }}"
+
+          while IFS= read -r entry_file; do
+            [ -z "$entry_file" ] && continue
+            [ ! -f "$entry_file" ] && continue
+            echo "=========================================="
+            echo "Checking: $entry_file"
+            echo "=========================================="
+
+            # Run the actual package install + introspection inside a sandboxed
+            # Docker container with no network access after install, no secrets.
+            docker run --rm \
+              --network none \
+              --memory 2g \
+              --cpus 2 \
+              -v "$(pwd):/workspace:ro" \
+              -v "/tmp/entry-workspace:/workspace-rw" \
+              python:3.11-slim \
+              bash -c "
+                set -e
+                pip install --quiet jsonschema 'ruamel.yaml' pyyaml
+                cp -r /workspace /workspace-copy
+                cd /workspace-copy
+                python scripts/quick_check.py \
+                  --entry '$entry_file' \
+                  --pr-author '$PR_AUTHOR'
+              " || FAILED=1
+          done <<< "$ENTRIES"
+
+          exit $FAILED
+
+  # ── Job 3: Enable auto-merge when both checks pass ────────────────────────
+  enable-auto-merge:
+    name: Enable auto-merge
+    runs-on: ubuntu-latest
+    needs: [ownership-check, quick-compliance]
+    if: success()
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge --auto --squash "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}"

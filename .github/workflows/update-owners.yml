@@ -1,0 +1,55 @@
+name: Update OWNERS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "entries/*.yaml"
+
+jobs:
+  update-owners:
+    name: Update OWNERS.yaml
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # bot bypass scoped to OWNERS.yaml via path-restricted ruleset
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2  # need previous commit to find new/modified entries
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install "ruamel.yaml" pyyaml
+
+      - name: Find merged entry files
+        id: find-entries
+        run: |
+          # Find entry files that changed in this push
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'entries/*.yaml' | tr '\n' ' ')
+          echo "changed_entries=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Changed entries: $CHANGED"
+
+      - name: Update OWNERS.yaml
+        if: steps.find-entries.outputs.changed_entries != ''
+        run: |
+          for entry_file in ${{ steps.find-entries.outputs.changed_entries }}; do
+            [ -f "$entry_file" ] || continue  # skip deleted entries
+            echo "Updating OWNERS.yaml for: $entry_file"
+            python scripts/update_owners.py --entry "$entry_file"
+          done
+
+      - name: Commit OWNERS.yaml update
+        run: |
+          git config user.name  "cube-registry-bot"
+          git config user.email "cube-registry-bot@users.noreply.github.com"
+          git add OWNERS.yaml
+          git diff --cached --quiet && echo "OWNERS.yaml unchanged" || \
+            git commit -s -m "ci: update OWNERS.yaml [skip ci]"
+          git push
