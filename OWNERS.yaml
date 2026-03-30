@@ -2,4 +2,15 @@
 # Maps benchmark id → list of GitHub handles that may modify that entry.
 # Updated automatically by the update-owners workflow after a successful merge.
 osworld:
+- amanjaiswal73892
+- kushasareen
 - recursix
+arithmetic-cube:
+- NicolasAG
+miniwob:
+- NicolasAG
+- amanjaiswal73892
+- younik
+workarena:
+- NicolasAG
+- younik
