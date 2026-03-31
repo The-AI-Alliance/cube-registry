@@ -111,11 +111,11 @@
     <!-- View toggle -->
     <div class="flex items-center gap-1 border border-gray-200 rounded-lg overflow-hidden ml-auto">
       <button id="view-cards-btn" onclick="setView('cards')"
-        class="text-xs px-3 py-1.5 bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors">
+        class="text-xs px-3 py-1.5 bg-white text-gray-600 font-medium hover:bg-gray-50 transition-colors">
         Cards
       </button>
       <button id="view-table-btn" onclick="setView('table')"
-        class="text-xs px-3 py-1.5 bg-white text-gray-600 font-medium hover:bg-gray-50 transition-colors">
+        class="text-xs px-3 py-1.5 bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors">
         Table
       </button>
     </div>
@@ -124,7 +124,7 @@
 
 <!-- ── Card grid ─────────────────────────────────────────────────────────── -->
 <main class="max-w-7xl mx-auto px-4 py-8">
-  <div id="card-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+  <div id="card-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
 
     
     <article
@@ -311,7 +311,7 @@
   </div>
 
   <!-- ── Table view ──────────────────────────────────────────────────────────── -->
-  <div id="table-view" class="hidden overflow-x-auto">
+  <div id="table-view" class="overflow-x-auto">
     <table class="min-w-full bg-white rounded-xl border border-gray-200 text-sm">
       <thead>
         <tr class="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wider">
@@ -487,14 +487,14 @@
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="https://github.com/The-AI-Alliance/cube-standard" class="underline">CUBE Standard</a> ·
-    Generated 2026-03-31 14:40 UTC
+    Generated 2026-03-31 15:00 UTC
   </p>
   <p class="mt-1">License information is self-reported. The AI Alliance makes no warranty as to its accuracy.</p>
 </footer>
 
 <script>
   // ── View toggle ────────────────────────────────────────────────────────────
-  let currentView = 'cards';
+  let currentView = 'table';
 
   function setView(view) {
     currentView = view;
