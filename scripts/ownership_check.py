@@ -67,18 +67,10 @@ def check_ownership(
 
     for filepath in changed_files:
         # Reject path traversal attempts (e.g. "../../../etc/passwd").
-        # All legitimate paths are relative and stay within the repo root.
-        try:
-            resolved = Path(filepath).resolve()
-            # Ensure the path doesn't escape the current directory via ".."
-            Path(filepath).relative_to(Path(".").resolve())
-        except ValueError:
-            print(f"::error::Path traversal detected in changed file: '{filepath}'")
+        # All legitimate paths are relative and contain no ".." components.
+        if ".." in Path(filepath).parts or Path(filepath).is_absolute():
+            print(f"::error::Rejecting changed file path with traversal component: '{filepath}'")
             print(f"❌ BLOCKED: path traversal attempt rejected.")
-            all_passed = False
-            continue
-        if ".." in Path(filepath).parts:
-            print(f"::error::Rejecting changed file path with '..' component: '{filepath}'")
             all_passed = False
             continue
 
