@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WorkArena — CUBE Registry</title>
-  <meta name="description" content="WorkArena evaluates agents on enterprise service-desk workflows inside a real ServiceNow Personal Developer Instance. Tasks are organized into three levels: L1 atomic tasks (~33 unique tasks × multipl…" />
+  <meta name="description" content="WorkArena evaluates agents on enterprise service-desk workflows inside a real ServiceNow Personal Developer Instance. Tasks are organized into three levels: L1 atomic tasks (~33 unique tasks x multipl…" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
     .copy-btn { cursor: pointer; }
     .copy-btn:active { transform: scale(0.97); }
@@ -65,7 +65,7 @@
     
 
     <!-- Description -->
-    <p class="mt-4 text-gray-700 leading-relaxed">WorkArena evaluates agents on enterprise service-desk workflows inside a real ServiceNow Personal Developer Instance. Tasks are organized into three levels: L1 atomic tasks (~33 unique tasks × multiple seeds), L2 compositional tasks, and L3 extended tasks with company protocols. Requires a free ServiceNow PDI and browser-automation tooling.
+    <p class="mt-4 text-gray-700 leading-relaxed">WorkArena evaluates agents on enterprise service-desk workflows inside a real ServiceNow Personal Developer Instance. Tasks are organized into three levels: L1 atomic tasks (~33 unique tasks x multiple seeds), L2 compositional tasks, and L3 extended tasks with company protocols. Requires a free ServiceNow PDI and browser-automation tooling.
 </p>
 
     <!-- Authors -->
@@ -234,16 +234,15 @@
     </div>
     <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
       <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: workarena
-name: WorkArena
+name: "WorkArena"
 version: "1.0.0"
 description: >
   WorkArena evaluates agents on enterprise service-desk workflows inside a
   real ServiceNow Personal Developer Instance. Tasks are organized into three
-  levels: L1 atomic tasks (~33 unique tasks × multiple seeds), L2
+  levels: L1 atomic tasks (~33 unique tasks x multiple seeds), L2
   compositional tasks, and L3 extended tasks with company protocols. Requires
   a free ServiceNow PDI and browser-automation tooling.
 package: workarena-cube
-
 dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/workarena"
 
 authors:
@@ -262,9 +261,11 @@ legal:
       description: "Requires a free ServiceNow Personal Developer Instance (PDI). Register at developer.servicenow.com"
       url: "https://developer.servicenow.com"
 
-paper: "https://arxiv.org/abs/2402.05181"
-tags: [web, gui]
+tags:
+  - web
+  - gui
 
+paper: "https://arxiv.org/abs/2402.05181"
 parallelization_mode: task-parallel
 
 status: active
@@ -282,7 +283,7 @@ has_debug_agent: true
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="../" class="underline">All benchmarks</a> ·
-    Generated 2026-03-31 19:40 UTC
+    Generated 2026-03-31 20:10 UTC
   </p>
 </footer>
 

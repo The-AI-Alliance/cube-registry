@@ -6,7 +6,7 @@
   <title>MiniWob++ — CUBE Registry</title>
   <meta name="description" content="MiniWob++ (Mini World of Bits++) is a collection of 125 browser-based web-interaction tasks ranging from simple button clicks to multi-step form filling. The CUBE wrapper starts a local HTTP server th…" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
     .copy-btn { cursor: pointer; }
     .copy-btn:active { transform: scale(0.97); }
@@ -44,6 +44,11 @@
         <h1 class="text-3xl font-extrabold text-gray-900">MiniWob++</h1>
         <p class="text-sm text-gray-400 mt-1 font-mono">miniwob · v1.0.0</p>
       </div>
+      
+      <a href="https://arxiv.org/abs/2306.06070" target="_blank" rel="noopener"
+         class="flex-shrink-0 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium">
+        📄 Paper
+      </a>
       
       
       <a href="https://miniwob.farama.org" target="_blank" rel="noopener"
@@ -111,7 +116,7 @@
   <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        125
+        
       </div>
       <div class="text-xs text-gray-500 mt-1">Tasks</div>
     </div>
@@ -122,14 +127,14 @@
       <div class="text-xs text-gray-500 mt-1">Infra</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div class="text-2xl font-bold text-green-600">
-        Yes
+      <div class="text-2xl font-bold text-red-500">
+        No
       </div>
       <div class="text-xs text-gray-500 mt-1">Debug Task</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div class="text-2xl font-bold text-green-600">
-        Yes
+      <div class="text-2xl font-bold text-gray-400">
+        No
       </div>
       <div class="text-xs text-gray-500 mt-1">Debug Agent</div>
     </div>
@@ -137,41 +142,6 @@
 
   <!-- ── Feature flags ─────────────────────────────────────────────────── -->
   
-  
-  <section class="bg-white rounded-xl border border-gray-200 p-5">
-    <h2 class="text-lg font-bold mb-4">Feature Flags</h2>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      
-      <div class="flex items-center gap-2 text-sm">
-        
-        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
-        <span class="text-gray-400">async</span>
-        
-      </div>
-      
-      <div class="flex items-center gap-2 text-sm">
-        
-        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
-        <span class="text-gray-400">streaming</span>
-        
-      </div>
-      
-      <div class="flex items-center gap-2 text-sm">
-        
-        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
-        <span class="text-gray-400">multi_agent</span>
-        
-      </div>
-      
-      <div class="flex items-center gap-2 text-sm">
-        
-        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
-        <span class="text-gray-400">multi_dim_reward</span>
-        
-      </div>
-      
-    </div>
-  </section>
   
 
   <!-- ── Resources ─────────────────────────────────────────────────────── -->
@@ -258,7 +228,7 @@
     </div>
     <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
       <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: miniwob
-name: MiniWob++
+name: "MiniWob++"
 version: "1.0.0"
 description: >
   MiniWob++ (Mini World of Bits++) is a collection of 125 browser-based
@@ -267,16 +237,15 @@ description: >
   task pages and exposes them via a browser tool; each task runs independently
   with no shared state.
 package: miniwob-cube
-
 dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/miniwob"
 
 authors:
-- github: younik
-  name: Omar Younis
-- github: amanjaiswal73892
-  name: Aman Jaiswal
-- github: NicolasAG
-  name: Nicolas Gontier
+  - github: younik
+    name: Omar Younis
+  - github: amanjaiswal73892
+    name: Aman Jaiswal
+  - github: NicolasAG
+    name: Nicolas Gontier
 
 legal:
   wrapper_license: MIT
@@ -284,23 +253,13 @@ legal:
     reported: MIT
     source_url: "https://github.com/Farama-Foundation/miniwob-plusplus/blob/master/LICENSE"
 
-    verified_by_original_authors: false
+tags:
+  - web
+  - gui
+
+paper: "https://arxiv.org/abs/2306.06070"
 getting_started_url: "https://miniwob.farama.org"
-tags: [web, gui]
-
 parallelization_mode: task-parallel
-
-status: active
-has_debug_task: true
-has_debug_agent: true
-resources: []
-task_count: 125
-action_space: []
-features:
-  async: false
-  streaming: false
-  multi_agent: false
-  multi_dim_reward: false
 </code></pre>
     </div>
   </section>
@@ -312,7 +271,7 @@ features:
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="../" class="underline">All benchmarks</a> ·
-    Generated 2026-03-31 19:40 UTC
+    Generated 2026-03-31 20:10 UTC
   </p>
 </footer>
 
