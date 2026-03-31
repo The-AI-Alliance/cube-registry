@@ -93,7 +93,7 @@ jobs:
               --cpus 2 \
               -v "$(pwd):/workspace:ro" \
               -v "/tmp/entry-workspace:/workspace-rw" \
-              python:3.11-slim \
+              python:3.12-slim \
               bash -c "
                 set -e
                 apt-get update -qq && apt-get install -y -qq git
