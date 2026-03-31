@@ -9,8 +9,7 @@ description: >
   snapshot, runs setup scripts, and evaluates the final desktop state.
 package: osworld-cube
 
-# Note: not yet published on PyPI. Install from source:
-#   pip install git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/osworld-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/osworld-cube"
 
 authors:
   - github: kushasareen

@@ -9,8 +9,7 @@ description: >
   a free ServiceNow PDI and browser-automation tooling.
 package: workarena-cube
 
-# Note: not yet published on PyPI. Install from source:
-#   pip install git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/workarena
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/workarena"
 
 authors:
   - github: younik

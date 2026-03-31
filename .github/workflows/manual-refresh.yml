@@ -1,0 +1,122 @@
+name: Manual Refresh
+
+# Manually re-run the quick compliance check for one or more entries and write
+# back CI-derived fields (task_count, has_debug_task, features, etc.).
+#
+# Useful when:
+#   - A package is not yet on PyPI (uses dev_install_url fallback automatically)
+#   - A benchmark API changed and introspection data is stale
+#   - You want to populate fields for newly added entries
+
+on:
+  workflow_dispatch:
+    inputs:
+      entries:
+        description: >
+          Comma-separated entry IDs (e.g. "osworld,miniwob") or "all".
+        required: true
+        default: "all"
+      skip_install:
+        description: "Skip pip install — use packages already installed in the runner."
+        type: boolean
+        default: false
+
+jobs:
+  refresh:
+    name: Refresh — ${{ github.event.inputs.entries }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CI dependencies
+        run: pip install jsonschema "ruamel.yaml" pyyaml
+
+      - name: Resolve entry list
+        id: resolve
+        run: |
+          python - <<'PYEOF'
+          import os, glob, sys
+
+          raw = """${{ github.event.inputs.entries }}""".strip()
+          if raw == "all":
+              paths = sorted(glob.glob("entries/*.yaml"))
+          else:
+              ids = [x.strip() for x in raw.split(",") if x.strip()]
+              paths = []
+              for id_ in ids:
+                  p = f"entries/{id_}.yaml"
+                  if not os.path.exists(p):
+                      print(f"::warning::Entry not found: {p} — skipping")
+                  else:
+                      paths.append(p)
+
+          if not paths:
+              print("::error::No valid entries found.")
+              sys.exit(1)
+
+          print("Entries to refresh:")
+          for p in paths:
+              print(f"  {p}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              # Space-separated for use in bash loop
+              f.write(f"paths={' '.join(paths)}\n")
+          PYEOF
+
+      - name: Refresh entries
+        run: |
+          set -e
+          FAILED=0
+          REFRESHED=0
+
+          INSTALL_FLAG=""
+          if [ "${{ github.event.inputs.skip_install }}" = "true" ]; then
+            INSTALL_FLAG="--no-install"
+          fi
+
+          for entry_file in ${{ steps.resolve.outputs.paths }}; do
+            echo ""
+            echo "=========================================="
+            echo "Refreshing: $entry_file"
+            echo "=========================================="
+            python scripts/quick_check.py \
+              --entry "$entry_file" \
+              --pr-author "cube-registry-bot" \
+              $INSTALL_FLAG \
+            && REFRESHED=$((REFRESHED + 1)) \
+            || FAILED=$((FAILED + 1))
+          done
+
+          echo ""
+          echo "=========================================="
+          echo "Done — refreshed: $REFRESHED  failed: $FAILED"
+          echo "=========================================="
+          [ $FAILED -eq 0 ]
+
+      - name: Commit and push
+        run: |
+          git config user.name  "cube-registry-bot"
+          git config user.email "cube-registry-bot@users.noreply.github.com"
+          git add entries/
+          if git diff --cached --quiet; then
+            echo "No changes — introspection data is already up to date."
+          else
+            git commit -s -m "ci: refresh introspection [${{ github.event.inputs.entries }}] [skip ci]"
+            git push
+          fi
+
+      - name: Trigger site regeneration
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run generate-site.yml --repo "${{ github.repository }}"

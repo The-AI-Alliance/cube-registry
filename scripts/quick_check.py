@@ -64,8 +64,8 @@ def validate_schema(entry: dict, schema: dict) -> list[str]:
     return [f"{'.'.join(str(p) for p in e.path) or '<root>'}: {e.message}" for e in errors]
 
 
-def pip_install_package(package: str, version: str) -> tuple[bool, str]:
-    """Install package==version in isolated env. Returns (success, error_message)."""
+def pip_install_package(package: str, version: str, dev_install_url: str | None = None) -> tuple[bool, str]:
+    """Install package==version from PyPI, falling back to dev_install_url if PyPI fails."""
     pkg_spec = f"{package}=={version}"
     print(f"  Installing {pkg_spec} ...")
     try:
@@ -75,13 +75,34 @@ def pip_install_package(package: str, version: str) -> tuple[bool, str]:
             text=True,
             timeout=300,
         )
-        if result.returncode != 0:
-            return False, f"pip install failed:\n{result.stderr}"
-        return True, ""
+        if result.returncode == 0:
+            return True, ""
+        pypi_err = result.stderr
     except subprocess.TimeoutExpired:
         return False, "pip install timed out after 5 minutes"
     except Exception as e:
         return False, str(e)
+
+    # PyPI failed — try dev_install_url if provided
+    if dev_install_url:
+        print(f"  ::warning::PyPI install failed. Trying dev_install_url: {dev_install_url}")
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--quiet", dev_install_url],
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+            if result.returncode == 0:
+                print(f"  Installed from dev_install_url (package not yet on PyPI).")
+                return True, ""
+            return False, f"PyPI failed:\n{pypi_err}\n\ndev_install_url also failed:\n{result.stderr}"
+        except subprocess.TimeoutExpired:
+            return False, "dev_install_url install timed out after 10 minutes"
+        except Exception as e:
+            return False, f"PyPI failed: {pypi_err}\ndev_install_url error: {e}"
+
+    return False, f"pip install failed:\n{pypi_err}"
 
 
 def find_benchmark_class(package: str) -> tuple[Any, str]:
@@ -369,10 +390,11 @@ def main() -> None:
 
     # --- Step 2: pip install ---
     print(f"\nStep 2: Package installation")
+    dev_install_url: str | None = entry.get("dev_install_url")
     if args.no_install:
         print("  Skipping pip install (--no-install flag set)")
     else:
-        ok, err = pip_install_package(package, version)
+        ok, err = pip_install_package(package, version, dev_install_url=dev_install_url)
         if not ok:
             print(f"::error file={entry_path}::Package install failed: {err}")
             print(f"❌ pip install FAILED:\n{err}")

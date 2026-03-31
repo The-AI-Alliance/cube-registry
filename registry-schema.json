@@ -32,6 +32,11 @@
       "description": "PyPI package name for pip install.",
       "minLength": 1
     },
+    "dev_install_url": {
+      "type": "string",
+      "description": "Optional git or direct URL for pip install before the package is published to PyPI. Used by the manual-refresh workflow and as a fallback when PyPI install fails. Example: git+https://github.com/org/repo#subdirectory=cubes/my-cube",
+      "pattern": "^(git\\+https?://|https?://)"
+    },
     "authors": {
       "type": "array",
       "description": "List of cube developers submitting this entry. At least one required. Populates OWNERS.yaml on merge.",

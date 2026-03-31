@@ -9,8 +9,7 @@ description: >
   with no shared state.
 package: miniwob-cube
 
-# Note: not yet published on PyPI. Install from source:
-#   pip install git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/miniwob
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/miniwob"
 
 authors:
   - github: younik
@@ -26,7 +25,7 @@ legal:
     reported: MIT
     source_url: "https://github.com/Farama-Foundation/miniwob-plusplus/blob/master/LICENSE"
 
-paper: "https://arxiv.org/abs/1802.08802"
+getting_started_url: "https://miniwob.farama.org"
 tags: [web, gui]
 
 parallelization_mode: task-parallel
