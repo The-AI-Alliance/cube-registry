@@ -99,17 +99,10 @@ jobs:
       contents: write    # to commit stress results
       issues: write      # to open failure issues
 
-    env:
-      # Cloud credentials — injected here, NOT in quick-check.
-      # Benchmark code runs inside the provisioned VM, never on this runner.
-      AWS_ACCESS_KEY_ID:      ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION:     ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
-      AZURE_SUBSCRIPTION_ID:  ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_CLIENT_ID:        ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET:    ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID:        ${{ secrets.AZURE_TENANT_ID }}
-      GCP_SA_KEY:             ${{ secrets.GCP_SA_KEY }}
+    # SECURITY: No credentials at job level.
+    # Cloud credentials are injected only into the provisioning step (VM benchmarks).
+    # The "Run slow check" step that executes benchmark code receives NO credentials —
+    # benchmark code runs inside a Docker sandbox with no --env forwarding.
 
     steps:
       - name: Checkout
@@ -125,10 +118,30 @@ jobs:
 
       - name: Run slow check
         id: slow-check
+        # SECURITY: No env block here — benchmark code (Docker sandbox) must
+        # never see cloud credentials.  Credentials are added only to the
+        # "Provision infra" step when VM provisioning is implemented.
         run: |
           python scripts/slow_check.py \
             --entry "${{ matrix.entry }}" \
             --provider "${{ matrix.provider }}"
+
+      # ── VM provisioning stub ─────────────────────────────────────────────────
+      # When VM slow-check is implemented, add a separate "Provision infra" step
+      # HERE with step-level env for cloud credentials.  Never add credentials to
+      # the "Run slow check" step above.
+      #
+      # - name: Provision infra
+      #   env:
+      #     AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     AWS_DEFAULT_REGION:    ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
+      #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      #     AZURE_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+      #     AZURE_CLIENT_SECRET:   ${{ secrets.AZURE_CLIENT_SECRET }}
+      #     AZURE_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+      #     GCP_SA_KEY:            ${{ secrets.GCP_SA_KEY }}
+      #   run: python scripts/provision_infra.py ...
 
       - name: Commit stress results
         if: success()

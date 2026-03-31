@@ -11,9 +11,13 @@ This script is the thin orchestrator that:
   5. Writes results to stress-results/<id>/v<version>.json
   6. Updates stress_results_url in the entry YAML
 
-Note: For VM-based resources, the benchmark package runs INSIDE the provisioned VM,
-not on this runner. This runner holds cloud credentials and orchestrates via cloud SDK.
-The benchmark package is never imported here.
+Security model:
+- Benchmark code (pip install + Python execution) ALWAYS runs inside a Docker
+  container with no cloud credentials forwarded — even for Docker-native benchmarks.
+- For VM-based resources, the benchmark package additionally runs INSIDE the
+  provisioned VM; this runner only calls the cloud SDK to provision/deprovision.
+- Cloud credentials are passed only to the provisioning steps, never to any step
+  that touches benchmark code.
 
 Exit codes:
   0 — slow check passed, results written
@@ -24,7 +28,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
@@ -54,32 +57,30 @@ def load_entry(entry_path: Path) -> dict:
 
 def run_docker_debug_episode(entry: dict, provider: str) -> dict[str, Any]:
     """
-    Run a debug episode using Docker resources (directly on the runner).
-    Installs the package, runs debug episode, captures metrics.
-    Returns a metrics dict.
+    Run a debug episode for a Docker-native benchmark.
+
+    Security: benchmark code (pip install + Python execution) runs inside a
+    throwaway Docker container.  No cloud credentials are forwarded — the
+    container inherits NONE of the runner's environment variables.
+    The runner process never imports or executes benchmark code.
     """
     package = entry["package"]
     version = entry["version"]
-    benchmark_id = entry["id"]
+    dev_install_url = entry.get("dev_install_url")
 
-    # Validate package name before using it in any subprocess call.
-    # This is the primary defence against code injection via a crafted package field.
     if not _PACKAGE_NAME_RE.match(package):
         raise RuntimeError(
             f"Invalid package name '{package}'. Must match PyPI normalised naming "
             f"(lowercase letters, digits, hyphens, dots, underscores)."
         )
 
-    print(f"  [docker] Installing {package}=={version} ...")
-    result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", f"{package}=={version}"],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"pip install failed: {result.stderr}")
+    # pip install target: versioned PyPI release, or dev_install_url if not yet published.
+    # dev_install_url is schema-validated to an allowlisted domain (github.com etc.)
+    # so it is safe to use directly as a pip argument.
+    pip_target = dev_install_url if dev_install_url else f"{package}=={version}"
 
-    # The debug script receives the package name as a CLI argument — never interpolated
+    # The debug script is written to a temp file and mounted read-only into the
+    # container.  The package name is passed as a CLI argument — never interpolated
     # into the script body — so a crafted package name cannot inject code.
     debug_script = """\
 import importlib, time, sys, json, statistics, argparse
@@ -90,41 +91,45 @@ args = parser.parse_args()
 
 module_name = args.package.replace("-", "_")
 pkg = importlib.import_module(module_name)
-BenchmarkClass = pkg.Benchmark
 
-t0 = time.time()
-benchmark = BenchmarkClass()
-setup_time = time.time() - t0
-
-tasks = benchmark.debug_tasks() if hasattr(benchmark, "debug_tasks") else []
-if not tasks:
-    print("ERROR: no debug tasks", file=sys.stderr)
+get_debug = getattr(pkg, "get_debug_benchmark", None)
+if get_debug is None:
+    print("ERROR: no get_debug_benchmark() in module", file=sys.stderr)
     sys.exit(1)
 
-task = tasks[0]
+t0 = time.time()
+benchmark = get_debug()
+benchmark.setup()
+setup_time = time.time() - t0
 
+configs = list(benchmark.get_task_configs())
+if not configs:
+    print("ERROR: get_task_configs() returned no tasks", file=sys.stderr)
+    sys.exit(1)
+
+task = configs[0].make()
 t_spawn = time.time()
-obs = benchmark.reset(task_id=task.task_id if hasattr(task, "task_id") else str(task))
+obs, _ = task.reset()
 spawn_time = time.time() - t_spawn
 
 step_times = []
-if hasattr(benchmark, "make_debug_agent"):
-    agent = benchmark.make_debug_agent()
+make_agent = getattr(pkg, "make_debug_agent", None)
+if make_agent is not None:
+    agent = make_agent()
     for _ in range(3):
         t_step = time.time()
-        action = agent.act(obs) if hasattr(agent, "act") else None
+        action = agent.act(obs)
         step_times.append(time.time() - t_step)
-        if action is not None:
-            try:
-                obs, reward, done, info = benchmark.step(action)
-                if done:
-                    break
-            except Exception:
+        try:
+            obs, reward, done, _ = task.step(action)
+            if done:
                 break
+        except Exception:
+            break
 
-eval_result = benchmark.evaluate() if hasattr(benchmark, "evaluate") else {}
-if hasattr(benchmark, "close"):
-    benchmark.close()
+reward, _ = task.evaluate(obs)
+task.close()
+benchmark.close()
 
 results = {
     "setup_time_s": round(setup_time, 3),
@@ -133,7 +138,7 @@ results = {
     "step_latency_p95_s": round(sorted(step_times)[int(len(step_times) * 0.95)] if len(step_times) > 1 else step_times[0], 3) if step_times else None,
     "step_latency_p99_s": round(sorted(step_times)[-1], 3) if step_times else None,
     "episode_time_s": round(sum(step_times) + spawn_time, 3),
-    "eval_valid": isinstance(eval_result, dict),
+    "final_reward": round(float(reward), 4) if reward is not None else None,
 }
 print(json.dumps(results))
 """
@@ -143,24 +148,40 @@ print(json.dumps(results))
         tmp_path = tmp.name
 
     try:
+        print(f"  [docker-sandbox] Running debug episode for {package} (no credentials forwarded) ...")
         result = subprocess.run(
-            [sys.executable, tmp_path, "--package", package],
+            [
+                "docker", "run", "--rm",
+                "--memory", "4g",
+                "--cpus", "2",
+                "--pids-limit", "512",
+                "--cap-drop", "NET_ADMIN",
+                "--cap-drop", "SYS_PTRACE",
+                "--cap-drop", "SYS_ADMIN",
+                "--security-opt", "no-new-privileges",
+                # Script mounted read-only; no other host paths exposed.
+                # IMPORTANT: no --env flags — runner credentials are never forwarded.
+                "-v", f"{tmp_path}:/debug_script.py:ro",
+                "python:3.12-slim",
+                "bash", "-c",
+                f"set -e && "
+                f"apt-get update -qq && apt-get install -y -qq --no-install-recommends git ca-certificates && "
+                f"pip install --quiet '{pip_target}' && "
+                f"python /debug_script.py --package {package}",
+            ],
             capture_output=True,
             text=True,
-            timeout=600,
+            timeout=900,
         )
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
     if result.returncode != 0:
-        raise RuntimeError(f"Debug episode failed:\n{result.stderr}")
+        raise RuntimeError(f"Docker debug episode failed:\n{result.stderr}")
 
-    # Parse metrics from last line of stdout
-    output_lines = result.stdout.strip().splitlines()
-    for line in reversed(output_lines):
+    for line in reversed(result.stdout.strip().splitlines()):
         try:
-            metrics = json.loads(line)
-            return metrics
+            return json.loads(line)
         except json.JSONDecodeError:
             continue
 
