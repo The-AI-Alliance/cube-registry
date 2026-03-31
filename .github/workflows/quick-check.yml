@@ -96,6 +96,7 @@ jobs:
               python:3.11-slim \
               bash -c "
                 set -e
+                apt-get update -qq && apt-get install -y -qq git
                 pip install --quiet jsonschema 'ruamel.yaml' pyyaml
                 cp -r /workspace /workspace-copy
                 cd /workspace-copy
