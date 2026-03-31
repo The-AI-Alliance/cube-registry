@@ -6,10 +6,12 @@
   <title>MiniWob++ — CUBE Registry</title>
   <meta name="description" content="MiniWob++ (Mini World of Bits++) is a collection of 125 browser-based web-interaction tasks ranging from simple button clicks to multi-step form filling. The CUBE wrapper starts a local HTTP server th…" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <style>
     .copy-btn { cursor: pointer; }
     .copy-btn:active { transform: scale(0.97); }
     .feature-pill { display: inline-flex; align-items: center; gap: 4px; }
+    #yaml-code.hljs { background: transparent; padding: 0; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 min-h-screen">
@@ -241,21 +243,21 @@
   
 
   <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
-  <section class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-      <h2 class="text-lg font-bold">Registry Entry (YAML)</h2>
-      <div class="flex items-center gap-2">
+  <section class="rounded-xl border border-gray-200 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-800">
+      <h2 class="text-sm font-semibold text-gray-200 tracking-wide uppercase">Registry Entry (YAML)</h2>
+      <div class="flex items-center gap-3">
         
         <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/miniwob.yaml" target="_blank" rel="noopener"
-           class="text-xs text-gray-500 hover:text-indigo-700 underline">View on GitHub →</a>
+           class="text-xs text-gray-400 hover:text-indigo-300 underline">View on GitHub →</a>
         
         <button
-          class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium transition-colors"
+          class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1.5 rounded-lg font-medium transition-colors"
           onclick="copyYaml()" id="copy-yaml-btn">Copy</button>
       </div>
     </div>
-    <div class="relative">
-      <pre id="yaml-content" class="text-xs font-mono bg-gray-950 text-green-300 p-5 overflow-x-auto leading-relaxed max-h-96 overflow-y-auto">id: miniwob
+    <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
+      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: miniwob
 name: MiniWob++
 version: "1.0.0"
 description: >
@@ -299,7 +301,7 @@ features:
   streaming: false
   multi_agent: false
   multi_dim_reward: false
-</pre>
+</code></pre>
     </div>
   </section>
 
@@ -310,7 +312,7 @@ features:
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="../" class="underline">All benchmarks</a> ·
-    Generated 2026-03-31 18:42 UTC
+    Generated 2026-03-31 19:40 UTC
   </p>
 </footer>
 
@@ -326,17 +328,20 @@ function copyPipInstall() {
 }
 
 function copyYaml() {
-  const text = document.getElementById('yaml-content').textContent;
+  const text = document.getElementById('yaml-code').textContent;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('copy-yaml-btn');
     btn.textContent = 'Copied!';
-    btn.classList.add('bg-green-100', 'text-green-700');
+    btn.classList.add('bg-green-700');
     setTimeout(() => {
       btn.textContent = 'Copy';
-      btn.classList.remove('bg-green-100', 'text-green-700');
+      btn.classList.remove('bg-green-700');
     }, 2000);
   });
 }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+<script>hljs.highlightElement(document.getElementById('yaml-code'));</script>
 </body>
 </html>
