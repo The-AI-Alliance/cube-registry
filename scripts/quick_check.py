@@ -105,56 +105,6 @@ def pip_install_package(package: str, version: str, dev_install_url: str | None 
     return False, f"pip install failed:\n{pypi_err}"
 
 
-def find_benchmark_class(package: str) -> tuple[Any, str]:
-    """
-    Find the Benchmark class for *package*.
-
-    Resolution order:
-    1. ``cube.benchmarks`` entry point matching the package name (canonical CUBE mechanism).
-    2. A class literally named ``Benchmark`` exported at the package top level.
-
-    Returns (BenchmarkClass, error_message). On error, BenchmarkClass is None.
-    """
-    import importlib.metadata
-
-    # 1. Try the cube.benchmarks entry point (most reliable — avoids name guessing).
-    try:
-        eps = importlib.metadata.entry_points(group="cube.benchmarks")
-        matched = [ep for ep in eps if ep.name == package]
-        if matched:
-            try:
-                cls = matched[0].load()
-                print(f"  Resolved via entry point: {matched[0].value}")
-                return cls, ""
-            except Exception as e:
-                return None, f"Entry point '{matched[0].value}' failed to load: {e}"
-    except Exception as e:
-        print(f"  ::notice::Entry point lookup failed ({e}); falling back to import.")
-
-    # 2. Import the package module and look for a class named Benchmark.
-    try:
-        mod = importlib.import_module(package.replace("-", "_"))
-    except ImportError as e:
-        return None, f"Could not import package '{package}': {e}"
-
-    benchmark_cls = getattr(mod, "Benchmark", None)
-    if benchmark_cls is None:
-        for attr_name in dir(mod):
-            attr = getattr(mod, attr_name, None)
-            if attr is not None and inspect.isclass(attr) and attr.__name__ == "Benchmark":
-                benchmark_cls = attr
-                break
-
-    if benchmark_cls is None:
-        return None, (
-            f"Package '{package}' has no 'cube.benchmarks' entry point and does not export "
-            f"a class named 'Benchmark'. Register an entry point in pyproject.toml:\n"
-            f"  [project.entry-points.'cube.benchmarks']\n"
-            f"  {package} = \"your_module:YourBenchmark\""
-        )
-
-    return benchmark_cls, ""
-
 
 def _serialize_resource(r: Any) -> dict:
     if hasattr(r, "model_dump"):
@@ -438,6 +388,9 @@ def main() -> None:
         print(f"  ✅ {package}=={version} installed")
 
     # --- Step 3: Import and find Benchmark class ---
+    # cube-standard is now installed (it's a dep of every cube), so the import is safe here.
+    from cube.introspect import find_benchmark_class
+
     print(f"\nStep 3: Import benchmark")
     benchmark_cls, err = find_benchmark_class(package)
     if benchmark_cls is None:
