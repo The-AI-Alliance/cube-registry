@@ -128,7 +128,7 @@
       "description": "Searchable tags. Use standard values where possible.",
       "items": {
         "type": "string",
-        "enum": ["web", "coding", "os", "gui", "mobile", "science", "math", "multi-agent", "desktop", "multimodal", "nlp", "reasoning", "robotics", "games"]
+        "enum": ["web", "coding", "os", "gui", "mobile", "science", "math", "multi-agent", "desktop", "multimodal", "nlp", "reasoning", "robotics", "games", "swe", "docker", "terminal", "browser"]
       }
     },
     "getting_started_url": {
