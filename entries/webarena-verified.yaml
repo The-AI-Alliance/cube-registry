@@ -1,0 +1,33 @@
+id: webarena-verified
+name: "WebArena Verified"
+version: "1.0.0"
+description: >
+  WebArena Verified — 812 human-verified web automation tasks across 6
+  platforms (shopping, CMS, Reddit, GitLab, maps, homepage). Tasks run
+  against local Docker containers serving the web applications. Evaluation
+  uses HAR network traces and expected response matching.
+package: webarena-verified-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/webarena-verified"
+
+authors:
+  - github: younik
+    name: Omar Younis
+  - github: manuel-delverme
+    name: Manuel Del Verme
+  - github: NicolasAG
+    name: Nicolas Gontier
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: Apache-2.0
+    source_url: "https://github.com/web-arena-x/webarena/blob/main/LICENSE"
+
+tags:
+  - web
+  - gui
+  - browser
+
+paper: "https://arxiv.org/abs/2307.13854"
+getting_started_url: "https://webarena.dev"
+parallelization_mode: task-parallel
