@@ -1,0 +1,30 @@
+id: webarena-verified-cube
+name: "WebArena Verified"
+version: "1.0.0"
+description: >
+  WebArena-Verified benchmark cube — 812 verified web automation tasks
+package: webarena-verified-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/webarena-verified"
+
+authors:
+  - github: NicolasAG
+    name: Nicolas Gontier
+  - github: younik
+    name: Omar Younis
+  - github: manuel-delverme
+    name: Manuel Del Verme
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: MIT
+    source_url: "https://github.com/web-arena-x/webarena/blob/main/LICENSE"
+
+tags:
+  - browser
+  - web
+
+paper: "https://arxiv.org/abs/2307.13854"
+# getting_started_url: "<TODO: https://...>"
+# parallelization_mode: task-parallel
+# max_concurrent_tasks: 64
