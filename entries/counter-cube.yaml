@@ -1,0 +1,26 @@
+id: counter-cube
+name: "Counter Cube"  # auto-guessed — verify
+version: "0.1.0"
+description: >
+  Minimal counter benchmark — canonical example cube for contributors
+package: counter-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-standard#subdirectory=examples/counter-cube"
+
+authors:
+  - github: recursix
+    name: recursix
+
+legal:
+  wrapper_license: MIT
+  # benchmark_license:
+  #   reported: <TODO: SPDX-id of the underlying benchmark>
+  #   source_url: "<TODO: https://...>"
+
+tags:
+  - math
+
+# Optional fields — uncomment and fill as needed:
+# paper: "<TODO: https://arxiv.org/abs/...>"
+# getting_started_url: "<TODO: https://...>"
+# parallelization_mode: task-parallel
+# max_concurrent_tasks: 64
