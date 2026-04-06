@@ -11,12 +11,12 @@ package: osworld-cube
 dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/osworld-cube"
 
 authors:
-  - github: kushasareen
-    name: Kusha Sareen
-  - github: amanjaiswal73892
-    name: Aman Jaiswal
-  - github: recursix
-    name: Alexandre Lacoste
+- github: kushasareen
+  name: Kusha Sareen
+- github: amanjaiswal73892
+  name: Aman Jaiswal
+- github: recursix
+  name: Alexandre Lacoste
 
 legal:
   wrapper_license: MIT
@@ -24,14 +24,15 @@ legal:
     reported: CC-BY-4.0
     source_url: "https://creativecommons.org/licenses/by/4.0/legalcode"
   notices:
-    - type: software_registration
-      description: "Ubuntu desktop with pre-installed commercial applications including LibreOffice, Thunderbird, and others"
+  - type: software_registration
+    description: "Ubuntu desktop with pre-installed commercial applications including
+      LibreOffice, Thunderbird, and others"
 
 tags:
-  - os
-  - gui
-  - desktop
-  - multimodal
+- os
+- gui
+- desktop
+- multimodal
 
 paper: "https://arxiv.org/abs/2404.07972"
 supported_infra: [aws]
@@ -39,13 +40,13 @@ max_concurrent_tasks: 1
 parallelization_mode: benchmark-parallel
 
 resources:
-  - type: VMResourceConfig
-    name: osworld-ubuntu-vm
-    source_url: "https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip"
-    image_format: qcow2
-    scope: task
+- type: VMResourceConfig
+  name: osworld-ubuntu-vm
+  source_url: "https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip"
+  image_format: qcow2
+  scope: task
 
-status: active
+status: degraded
 task_count: 369
 has_debug_task: true
 has_debug_agent: true
