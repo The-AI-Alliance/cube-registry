@@ -23,10 +23,10 @@ legal:
   benchmark_license:
     reported: CC-BY-4.0
     source_url: "https://creativecommons.org/licenses/by/4.0/legalcode"
+    verified_by_original_authors: false
   notices:
   - type: software_registration
-    description: "Ubuntu desktop with pre-installed commercial applications including
-      LibreOffice, Thunderbird, and others"
+    description: "Ubuntu desktop with pre-installed commercial applications including LibreOffice, Thunderbird, and others"
 
 tags:
 - os
@@ -40,13 +40,23 @@ max_concurrent_tasks: 1
 parallelization_mode: benchmark-parallel
 
 resources:
-- type: VMResourceConfig
-  name: osworld-ubuntu-vm
-  source_url: "https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip"
-  image_format: qcow2
+- name: osworld-ubuntu-vm
   scope: task
-
-status: degraded
-task_count: 369
+  max_concurrent_agents:
+  source_url: https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip
+  source_hash:
+  default_ttl_seconds: 86400
+  bootstrap_script_extra:
+  requires_kvm: true
+  _type: cube.resource.VMResourceConfig
+  type: VMResourceConfig
+status: active
+task_count: 368
 has_debug_task: true
 has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false

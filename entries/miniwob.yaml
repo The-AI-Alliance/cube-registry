@@ -24,6 +24,7 @@ legal:
     reported: MIT
     source_url: "https://github.com/Farama-Foundation/miniwob-plusplus/blob/master/LICENSE"
 
+    verified_by_original_authors: false
 tags:
 - web
 - gui
@@ -33,7 +34,7 @@ getting_started_url: "https://miniwob.farama.org"
 parallelization_mode: task-parallel
 
 # Fields below are set by CI — do not edit manually.
-status: degraded
+status: active
 task_count: 125
 has_debug_task: true
 has_debug_agent: true
@@ -43,3 +44,4 @@ features:
   streaming: false
   multi_agent: false
   multi_dim_reward: false
+action_space: []
