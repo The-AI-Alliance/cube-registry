@@ -6,8 +6,8 @@ Validates a registry entry YAML and introspects the benchmark package:
   1. Validate YAML against registry-schema.json
   2. pip install the package in a subprocess (isolated)
   3. Import the package, find the Benchmark class
-  4. Instantiate Benchmark(), call basic API methods
-  5. Introspect benchmark.resources, task class for features
+  4. Read ClassVar metadata; attempt Benchmark() instantiation for resources
+  5. Introspect benchmark.resources (with fallback), task class for features
   6. Write back CI-derived fields to the YAML
 
 Exit codes:
@@ -186,11 +186,12 @@ def introspect_benchmark(benchmark_cls: Any, package: str) -> dict[str, Any]:
     Introspect the Benchmark class and its package module to derive CI fields.
 
     Follows the CUBE debug-module convention:
-      - task_count: via benchmark.get_task_configs() (not .tasks())
+      - task_count: benchmark_cls.benchmark_metadata.num_tasks (ClassVar — no infra needed)
       - has_debug_task: module exposes get_debug_benchmark()
       - has_debug_agent: module exposes make_debug_agent()
-      - resources: benchmark.resources (present on VM/Docker benchmarks)
-      - features: introspected from the task class
+      - resources: benchmark instance .resources, with class-default fallback if
+                   instantiation fails (e.g. benchmarks requiring Docker/VM args)
+      - features: introspected from the task class (ClassVar)
     """
     derived: dict[str, Any] = {}
 
@@ -200,33 +201,33 @@ def introspect_benchmark(benchmark_cls: Any, package: str) -> dict[str, Any]:
     except ImportError:
         mod = None
 
-    # Instantiate benchmark
+    # --- task_count: ClassVar — no instantiation needed ---
+    task_cls = getattr(benchmark_cls, "task_config_class", None)
     try:
-        benchmark = benchmark_cls()
-    except Exception as e:
-        raise RuntimeError(f"Failed to instantiate Benchmark(): {e}") from e
-
-    # --- task_count: read from benchmark_metadata.num_tasks ---
-    # task_count is a static property declared on the class — no infra needed.
-    # If num_tasks is 0 or missing the entry is rejected: benchmarks must declare
-    # their task count in BenchmarkMetadata.
-    task_cls = benchmark.task_config_class if hasattr(benchmark, "task_config_class") else None
-    try:
-        num_tasks = benchmark.benchmark_metadata.num_tasks
+        num_tasks = benchmark_cls.benchmark_metadata.num_tasks
     except AttributeError as e:
         raise RuntimeError(
-            f"benchmark.benchmark_metadata.num_tasks is not accessible: {e}\n"
+            f"benchmark_cls.benchmark_metadata.num_tasks is not accessible: {e}\n"
             "Benchmarks must declare a BenchmarkMetadata with num_tasks set."
         ) from e
 
     if not num_tasks:
         raise RuntimeError(
-            "benchmark.benchmark_metadata.num_tasks is 0 or not set.\n"
+            "benchmark_cls.benchmark_metadata.num_tasks is 0 or not set.\n"
             "Set num_tasks in your BenchmarkMetadata class variable."
         )
 
     derived["task_count"] = num_tasks
     print(f"  task_count: {derived['task_count']} (from benchmark_metadata)")
+
+    # --- length of task_metadata dict as sanity check (should be == num_tasks) ---
+    task_metadata_len = len(getattr(benchmark_cls, "task_metadata", {}))
+    if task_metadata_len != num_tasks:
+        raise RuntimeError(
+            f"Length of benchmark_cls.task_metadata ({task_metadata_len}) does not match "
+            f"benchmark_metadata.num_tasks ({num_tasks}). This may indicate a mismatch "
+            f"between declared num_tasks and actual task metadata provided."
+        )
 
     # --- has_debug_task: module-level get_debug_benchmark() (CUBE debug convention) ---
     has_debug_task = False
@@ -246,15 +247,30 @@ def introspect_benchmark(benchmark_cls: Any, package: str) -> dict[str, Any]:
     derived["has_debug_agent"] = mod is not None and callable(getattr(mod, "make_debug_agent", None))
     print(f"  has_debug_agent: {derived['has_debug_agent']}")
 
-    # --- resources: present on VM/Docker benchmarks ---
+    # --- resources: try instantiation; fall back to class-level default on failure ---
+    # Benchmarks that require runtime arguments (Docker, VMs, credentials) at
+    # construction time will fail here. In that case we read the Pydantic field
+    # default instead — adequate for surfacing statically-declared resource configs.
+    resources_list: list[Any] = []
     try:
-        resources_list = benchmark.resources if hasattr(benchmark, "resources") else []
-        if not isinstance(resources_list, list):
-            resources_list = list(resources_list)
+        benchmark = benchmark_cls()
+        resources_list = list(benchmark.resources) if hasattr(benchmark, "resources") else []
+    except Exception as inst_err:
+        print(f"  ::warning::Benchmark() instantiation failed ({inst_err}); falling back to class-level resources default.")
+        try:
+            field_info = getattr(benchmark_cls, "model_fields", {}).get("resources")
+            if field_info is not None:
+                default = getattr(field_info, "default", None)
+                if isinstance(default, list):
+                    resources_list = default
+        except Exception as e:
+            print(f"  ::warning::Could not read class-level resources default: {e}")
+
+    try:
         derived["resources"] = [_serialize_resource(r) for r in resources_list]
         print(f"  resources: {len(derived['resources'])} resource(s)")
     except Exception as e:
-        print(f"  ::warning::Could not introspect benchmark.resources: {e}")
+        print(f"  ::warning::Could not serialize benchmark.resources: {e}")
         derived["resources"] = []
 
     # --- features ---
