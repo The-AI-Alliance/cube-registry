@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OSWorld — CUBE Registry</title>
-  <meta name="description" content="OSWorld benchmarks multimodal agents on open-ended computer tasks executed inside a real Ubuntu 22.04 desktop environment. Tasks span 369 scenarios across applications such as Chrome, LibreOffice, Thu…" />
+  <title>WebArena Verified — CUBE Registry</title>
+  <meta name="description" content="WebArena Verified benchmarks agents on 812 verified web automation tasks across 6 realistic web platforms: Magento shopping admin and storefront, a Reddit clone (Postmill), GitLab CE, Wikipedia (Kiwix…" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
@@ -26,11 +26,11 @@
       CUBE Registry
     </a>
     <span class="text-gray-300">/</span>
-    <span class="text-gray-700 font-medium">OSWorld</span>
+    <span class="text-gray-700 font-medium">WebArena Verified</span>
 
     <!-- Status badge -->
-    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">
-      Degraded
+    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-800">
+      Active
     </span>
   </div>
 </header>
@@ -41,15 +41,20 @@
   <section>
     <div class="flex items-start gap-4 flex-wrap">
       <div class="flex-1 min-w-0">
-        <h1 class="text-3xl font-extrabold text-gray-900">OSWorld</h1>
-        <p class="text-sm text-gray-400 mt-1 font-mono">osworld · v0.2.0</p>
+        <h1 class="text-3xl font-extrabold text-gray-900">WebArena Verified</h1>
+        <p class="text-sm text-gray-400 mt-1 font-mono">webarena-verified · v1.0.0</p>
       </div>
       
-      <a href="https://arxiv.org/abs/2404.07972" target="_blank" rel="noopener"
+      <a href="https://arxiv.org/abs/2406.11955" target="_blank" rel="noopener"
          class="flex-shrink-0 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium">
         📄 Paper
       </a>
       
+      
+      <a href="https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/webarena-verified" target="_blank" rel="noopener"
+         class="flex-shrink-0 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-medium">
+        📖 Getting Started
+      </a>
       
     </div>
 
@@ -57,19 +62,15 @@
     
     <div class="flex flex-wrap gap-2 mt-3">
       
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-800">os</span>
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800">web</span>
       
       <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800">gui</span>
-      
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-teal-100 text-teal-800">desktop</span>
-      
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-rose-100 text-rose-800">multimodal</span>
       
     </div>
     
 
     <!-- Description -->
-    <p class="mt-4 text-gray-700 leading-relaxed">OSWorld benchmarks multimodal agents on open-ended computer tasks executed inside a real Ubuntu 22.04 desktop environment. Tasks span 369 scenarios across applications such as Chrome, LibreOffice, Thunderbird, and the OS shell. Each task launches a fresh VM from a qcow2 image, restores a snapshot, runs setup scripts, and evaluates the final desktop state.
+    <p class="mt-4 text-gray-700 leading-relaxed">WebArena Verified benchmarks agents on 812 verified web automation tasks across 6 realistic web platforms: Magento shopping admin and storefront, a Reddit clone (Postmill), GitLab CE, Wikipedia (Kiwix), and OpenStreetMap with routing. Tasks span three types: information retrieval, data mutation, and navigation. Agents interact via browser tools; network traces (HAR) are captured and used during evaluation.
 </p>
 
     <!-- Authors -->
@@ -78,16 +79,20 @@
     <p class="mt-3 text-sm text-gray-500">
       By:
       
-        <a href="https://github.com/kushasareen" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
-          @kushasareen (Kusha Sareen)
+        <a href="https://github.com/NicolasAG" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @NicolasAG (Nicolas Gontier)
         </a>, 
       
-        <a href="https://github.com/amanjaiswal73892" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
-          @amanjaiswal73892 (Aman Jaiswal)
+        <a href="https://github.com/younik" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @younik (Omar Younis)
         </a>, 
       
         <a href="https://github.com/recursix" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
           @recursix (Alexandre Lacoste)
+        </a>, 
+      
+        <a href="https://github.com/manuel-delverme" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @manuel-delverme (Manuel Delverme)
         </a>
       
     </p>
@@ -98,7 +103,7 @@
   <section class="bg-gray-900 rounded-xl p-5">
     <p class="text-gray-400 text-sm mb-2 font-medium uppercase tracking-wider">Install</p>
     <div class="flex items-center gap-3">
-      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install osworld-cube</code>
+      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install webarena-verified-cube</code>
       <button
         class="copy-btn bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
         onclick="copyPipInstall()"
@@ -106,8 +111,8 @@
       >Copy</button>
     </div>
     <p class="text-gray-500 text-xs mt-2">
-      Version: 0.2.0 ·
-      <a href="https://pypi.org/project/osworld-cube/0.2.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
+      Version: 1.0.0 ·
+      <a href="https://pypi.org/project/webarena-verified-cube/1.0.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
     </p>
   </section>
 
@@ -115,25 +120,25 @@
   <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        369
+        
       </div>
       <div class="text-xs text-gray-500 mt-1">Tasks</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        aws
+        local
       </div>
       <div class="text-xs text-gray-500 mt-1">Infra</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div class="text-2xl font-bold text-green-600">
-        Yes
+      <div class="text-2xl font-bold text-red-500">
+        No
       </div>
       <div class="text-xs text-gray-500 mt-1">Debug Task</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div class="text-2xl font-bold text-green-600">
-        Yes
+      <div class="text-2xl font-bold text-gray-400">
+        No
       </div>
       <div class="text-xs text-gray-500 mt-1">Debug Agent</div>
     </div>
@@ -145,46 +150,6 @@
 
   <!-- ── Resources ─────────────────────────────────────────────────────── -->
   
-  
-  <section class="bg-white rounded-xl border border-gray-200 p-5">
-    <h2 class="text-lg font-bold mb-4">Resources</h2>
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wider">
-            <th class="pb-2 pr-4">Type</th>
-            <th class="pb-2 pr-4">Name</th>
-            <th class="pb-2 pr-4">Image URL</th>
-            <th class="pb-2 pr-4">Format</th>
-            <th class="pb-2 pr-4">Size</th>
-            <th class="pb-2 pr-4">RAM</th>
-            <th class="pb-2">GPU</th>
-          </tr>
-        </thead>
-        <tbody>
-          
-          <tr class="border-b border-gray-100 last:border-0">
-            <td class="py-2 pr-4 font-mono text-xs text-purple-700">VMResourceConfig</td>
-            <td class="py-2 pr-4 font-medium">osworld-ubuntu-vm</td>
-            <td class="py-2 pr-4">
-              —
-            </td>
-            <td class="py-2 pr-4 text-gray-500">qcow2</td>
-            <td class="py-2 pr-4 text-gray-500">
-              —
-            </td>
-            <td class="py-2 pr-4 text-gray-500">
-              —
-            </td>
-            <td class="py-2 text-gray-500">
-              —
-            </td>
-          </tr>
-          
-        </tbody>
-      </table>
-    </div>
-  </section>
   
 
   <!-- ── Action space ───────────────────────────────────────────────────── -->
@@ -206,12 +171,12 @@
       <div class="flex gap-3 items-start">
         <span class="text-gray-500 w-40 flex-shrink-0">Benchmark license</span>
         <div>
-          <span class="font-mono font-medium text-gray-800">CC-BY-4.0</span>
+          <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
           
           <span class="ml-2 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium border border-yellow-200">Self-reported — verify before commercial use</span>
           
           
-          <a href="https://creativecommons.org/licenses/by/4.0/legalcode" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
+          <a href="https://github.com/WebArena-Verified/webarena-verified/blob/main/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
           
         </div>
       </div>
@@ -225,8 +190,8 @@
         <div class="space-y-2">
           
           <div class="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-            <span class="text-xs font-medium text-orange-700 font-mono">Software Registration</span>
-            <p class="text-gray-700 text-sm mt-0.5">Ubuntu desktop with pre-installed commercial applications including LibreOffice, Thunderbird, and others</p>
+            <span class="text-xs font-medium text-orange-700 font-mono">Live Website Clone</span>
+            <p class="text-gray-700 text-sm mt-0.5">Requires running Docker containers that clone 6 web platforms (Magento, GitLab, Reddit/Postmill, Wikipedia/Kiwix, OpenStreetMap/OSRM). Containers are ephemeral and isolated — no real user data is affected.</p>
             
           </div>
           
@@ -256,13 +221,13 @@
       
       <div>
         <span class="text-gray-500 text-xs uppercase tracking-wider">Mode</span>
-        <p class="font-mono font-medium text-gray-800 mt-1">benchmark-parallel</p>
+        <p class="font-mono font-medium text-gray-800 mt-1">task-parallel</p>
       </div>
       
       
       <div>
         <span class="text-gray-500 text-xs uppercase tracking-wider">Max concurrent tasks</span>
-        <p class="font-bold text-gray-800 mt-1">1</p>
+        <p class="font-bold text-gray-800 mt-1">4</p>
       </div>
       
     </div>
@@ -275,7 +240,7 @@
       <h2 class="text-sm font-semibold text-gray-200 tracking-wide uppercase">Registry Entry (YAML)</h2>
       <div class="flex items-center gap-3">
         
-        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/osworld.yaml" target="_blank" rel="noopener"
+        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/webarena-verified.yaml" target="_blank" rel="noopener"
            class="text-xs text-gray-400 hover:text-indigo-300 underline">View on GitHub →</a>
         
         <button
@@ -284,58 +249,48 @@
       </div>
     </div>
     <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
-      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: osworld
-name: "OSWorld"
-version: "0.2.0"
+      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: webarena-verified
+name: "WebArena Verified"
+version: "1.0.0"
 description: >
-  OSWorld benchmarks multimodal agents on open-ended computer tasks executed
-  inside a real Ubuntu 22.04 desktop environment. Tasks span 369 scenarios
-  across applications such as Chrome, LibreOffice, Thunderbird, and the OS
-  shell. Each task launches a fresh VM from a qcow2 image, restores a
-  snapshot, runs setup scripts, and evaluates the final desktop state.
-package: osworld-cube
-dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/osworld-cube"
+  WebArena Verified benchmarks agents on 812 verified web automation tasks
+  across 6 realistic web platforms: Magento shopping admin and storefront,
+  a Reddit clone (Postmill), GitLab CE, Wikipedia (Kiwix), and OpenStreetMap
+  with routing. Tasks span three types: information retrieval, data mutation,
+  and navigation. Agents interact via browser tools; network traces (HAR) are
+  captured and used during evaluation.
+package: webarena-verified-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/webarena-verified"
 
 authors:
-- github: kushasareen
-  name: Kusha Sareen
-- github: amanjaiswal73892
-  name: Aman Jaiswal
+- github: NicolasAG
+  name: Nicolas Gontier
+- github: younik
+  name: Omar Younis
 - github: recursix
   name: Alexandre Lacoste
+- github: manuel-delverme
+  name: Manuel Delverme
 
 legal:
   wrapper_license: MIT
   benchmark_license:
-    reported: CC-BY-4.0
-    source_url: "https://creativecommons.org/licenses/by/4.0/legalcode"
+    reported: Apache-2.0
+    source_url: "https://github.com/WebArena-Verified/webarena-verified/blob/main/LICENSE"
   notices:
-  - type: software_registration
-    description: "Ubuntu desktop with pre-installed commercial applications including
-      LibreOffice, Thunderbird, and others"
+  - type: live_website_clone
+    description: "Requires running Docker containers that clone 6 web platforms
+      (Magento, GitLab, Reddit/Postmill, Wikipedia/Kiwix, OpenStreetMap/OSRM).
+      Containers are ephemeral and isolated — no real user data is affected."
 
 tags:
-- os
+- web
 - gui
-- desktop
-- multimodal
 
-paper: "https://arxiv.org/abs/2404.07972"
-supported_infra: [aws]
-max_concurrent_tasks: 1
-parallelization_mode: benchmark-parallel
-
-resources:
-- type: VMResourceConfig
-  name: osworld-ubuntu-vm
-  source_url: "https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip"
-  image_format: qcow2
-  scope: task
-
-status: degraded
-task_count: 369
-has_debug_task: true
-has_debug_agent: true
+paper: "https://arxiv.org/abs/2406.11955"
+getting_started_url: "https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/webarena-verified"
+parallelization_mode: task-parallel
+max_concurrent_tasks: 4
 </code></pre>
     </div>
   </section>
