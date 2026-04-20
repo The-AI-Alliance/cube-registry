@@ -29,8 +29,8 @@
     <span class="text-gray-700 font-medium">OSWorld</span>
 
     <!-- Status badge -->
-    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">
-      Degraded
+    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-800">
+      Active
     </span>
   </div>
 </header>
@@ -115,7 +115,7 @@
   <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        369
+        368
       </div>
       <div class="text-xs text-gray-500 mt-1">Tasks</div>
     </div>
@@ -141,6 +141,41 @@
 
   <!-- ── Feature flags ─────────────────────────────────────────────────── -->
   
+  
+  <section class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-lg font-bold mb-4">Feature Flags</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      
+      <div class="flex items-center gap-2 text-sm">
+        
+        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
+        <span class="text-gray-400">async</span>
+        
+      </div>
+      
+      <div class="flex items-center gap-2 text-sm">
+        
+        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
+        <span class="text-gray-400">streaming</span>
+        
+      </div>
+      
+      <div class="flex items-center gap-2 text-sm">
+        
+        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
+        <span class="text-gray-400">multi_agent</span>
+        
+      </div>
+      
+      <div class="flex items-center gap-2 text-sm">
+        
+        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
+        <span class="text-gray-400">multi_dim_reward</span>
+        
+      </div>
+      
+    </div>
+  </section>
   
 
   <!-- ── Resources ─────────────────────────────────────────────────────── -->
@@ -169,7 +204,7 @@
             <td class="py-2 pr-4">
               —
             </td>
-            <td class="py-2 pr-4 text-gray-500">qcow2</td>
+            <td class="py-2 pr-4 text-gray-500">—</td>
             <td class="py-2 pr-4 text-gray-500">
               —
             </td>
@@ -309,10 +344,10 @@ legal:
   benchmark_license:
     reported: CC-BY-4.0
     source_url: "https://creativecommons.org/licenses/by/4.0/legalcode"
+    verified_by_original_authors: false
   notices:
   - type: software_registration
-    description: "Ubuntu desktop with pre-installed commercial applications including
-      LibreOffice, Thunderbird, and others"
+    description: "Ubuntu desktop with pre-installed commercial applications including LibreOffice, Thunderbird, and others"
 
 tags:
 - os
@@ -326,16 +361,26 @@ max_concurrent_tasks: 1
 parallelization_mode: benchmark-parallel
 
 resources:
-- type: VMResourceConfig
-  name: osworld-ubuntu-vm
-  source_url: "https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip"
-  image_format: qcow2
+- name: osworld-ubuntu-vm
   scope: task
-
-status: degraded
-task_count: 369
+  max_concurrent_agents:
+  source_url: https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip
+  source_hash:
+  default_ttl_seconds: 86400
+  bootstrap_script_extra:
+  requires_kvm: true
+  _type: cube.resource.VMResourceConfig
+  type: VMResourceConfig
+status: active
+task_count: 368
 has_debug_task: true
 has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false
 </code></pre>
     </div>
   </section>
@@ -347,7 +392,7 @@ has_debug_agent: true
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="../" class="underline">All benchmarks</a> ·
-    Generated 2026-04-20 18:48 UTC
+    Generated 2026-04-20 19:55 UTC
   </p>
 </footer>
 
