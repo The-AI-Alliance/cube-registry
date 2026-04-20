@@ -1,0 +1,42 @@
+id: webarena-verified
+name: "WebArena Verified"
+version: "1.0.0"
+description: >
+  WebArena Verified benchmarks agents on 812 verified web automation tasks
+  across 6 realistic web platforms: Magento shopping admin and storefront,
+  a Reddit clone (Postmill), GitLab CE, Wikipedia (Kiwix), and OpenStreetMap
+  with routing. Tasks span three types: information retrieval, data mutation,
+  and navigation. Agents interact via browser tools; network traces (HAR) are
+  captured and used during evaluation.
+package: webarena-verified-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/webarena-verified"
+
+authors:
+- github: NicolasAG
+  name: Nicolas Gontier
+- github: younik
+  name: Omar Younis
+- github: recursix
+  name: Alexandre Lacoste
+- github: manuel-delverme
+  name: Manuel Delverme
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: Apache-2.0
+    source_url: "https://github.com/WebArena-Verified/webarena-verified/blob/main/LICENSE"
+  notices:
+  - type: live_website_clone
+    description: "Requires running Docker containers that clone 6 web platforms
+      (Magento, GitLab, Reddit/Postmill, Wikipedia/Kiwix, OpenStreetMap/OSRM).
+      Containers are ephemeral and isolated — no real user data is affected."
+
+tags:
+- web
+- gui
+
+paper: "https://arxiv.org/abs/2406.11955"
+getting_started_url: "https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/webarena-verified"
+parallelization_mode: task-parallel
+max_concurrent_tasks: 4

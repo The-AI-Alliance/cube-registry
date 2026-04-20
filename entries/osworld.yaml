@@ -1,6 +1,6 @@
 id: osworld
 name: "OSWorld"
-version: "0.1.0"
+version: "0.2.0"
 description: >
   OSWorld benchmarks multimodal agents on open-ended computer tasks executed
   inside a real Ubuntu 22.04 desktop environment. Tasks span 369 scenarios
