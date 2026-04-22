@@ -27,20 +27,31 @@ Your benchmark package must:
 - Implement the CUBE `Benchmark` and `Task` interfaces
 - Expose at least one debug task via `cube/debug_tasks`
 
-The easiest way to create a compliant package is with the CUBE skill in
-[Claude Code](https://claude.ai/claude-code):
+**Don't have a cube yet?** See the [Authoring a CUBE guide](https://the-ai-alliance.github.io/cube-standard/authoring-a-cube). The easiest path is the `/new-cube` skill in [Claude Code](https://claude.ai/claude-code), which interviews you, scaffolds the package, fills TODOs, validates, and produces a registry entry end-to-end:
 
 ```
-/create-cube
+/new-cube
 ```
+
+**Before submitting, self-audit with `/review-cube ./path/to/cube`** — it installs your package, runs pytest + `cube test`, audits against cube-standard invariants, and reports blocking issues locally so you can fix them before CI does.
 
 ### Submission steps
+
+**Automated (recommended):** from your cube package directory, run:
+
+```sh
+cube registry add --submit
+```
+
+This generates the entry YAML from your `pyproject.toml`, forks this repo, commits the entry, and opens a PR via the `gh` CLI. Run `cube registry add` without `--submit` first if you want to edit the YAML locally before opening the PR.
+
+**Manual:**
 
 1. Fork this repository
 2. Create `entries/<your-benchmark-id>.yaml` (see template below)
 3. Open a pull request
 
-CI will validate your entry and auto-merge if it passes. No human review needed.
+Either way, CI validates the entry and auto-merges if it passes. No human review needed.
 
 ### Entry template
 
