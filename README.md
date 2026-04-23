@@ -27,7 +27,7 @@ Your benchmark package must:
 - Implement the CUBE `Benchmark` and `Task` interfaces
 - Expose at least one debug task via `cube/debug_tasks`
 
-**Don't have a cube yet?** See the [Authoring a CUBE guide](https://the-ai-alliance.github.io/cube-standard/authoring-a-cube). The easiest path is the `/new-cube` skill in [Claude Code](https://claude.ai/claude-code), which interviews you, scaffolds the package, fills TODOs, validates, and produces a registry entry end-to-end:
+**Ready to wrap a benchmark into a CUBE?** See the [Authoring a CUBE guide](https://the-ai-alliance.github.io/cube-standard/authoring-a-cube). The easiest path is the `/new-cube` skill for coding agents, which interviews you, scaffolds the package, fills TODOs, validates, and produces a registry entry end-to-end:
 
 ```
 /new-cube
