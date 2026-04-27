@@ -25,13 +25,12 @@ legal:
   wrapper_license: MIT
   benchmark_license:
     reported: Apache-2.0
-    source_url: "https://github.com/WebArena-Verified/webarena-verified/blob/main/LICENSE"
+    source_url: "https://github.com/ServiceNow/webarena-verified/blob/main/LICENSE"
     verified_by_original_authors: false
   notices:
   - type: live_website_clone
-    description: "Requires running Docker containers that clone 6 web platforms (Magento,
-      GitLab, Reddit/Postmill, Wikipedia/Kiwix, OpenStreetMap/OSRM). Containers are
-      ephemeral and isolated — no real user data is affected."
+    description: "Requires running Docker containers that clone 6 web platforms (Magento, GitLab, Reddit/Postmill, Wikipedia/Kiwix,
+      OpenStreetMap/OSRM). Containers are ephemeral and isolated — no real user data is affected."
 
 tags:
 - web
@@ -41,7 +40,7 @@ paper: "https://arxiv.org/abs/2406.11955"
 getting_started_url: "https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/webarena-verified"
 parallelization_mode: task-parallel
 max_concurrent_tasks: 4
-status: degraded
+status: active
 resources: []
 task_count: 812
 has_debug_task: true
