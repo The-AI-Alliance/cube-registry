@@ -26,7 +26,8 @@ legal:
     verified_by_original_authors: false
   notices:
   - type: software_registration
-    description: "Ubuntu desktop with pre-installed commercial applications including LibreOffice, Thunderbird, and others"
+    description: "Ubuntu desktop with pre-installed commercial applications including
+      LibreOffice, Thunderbird, and others"
 
 tags:
 - os
@@ -43,14 +44,15 @@ resources:
 - name: osworld-ubuntu-vm
   scope: task
   max_concurrent_agents:
-  source_url: https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip
+  source_url: 
+    https://huggingface.co/datasets/xlangai/ubuntu_osworld/resolve/main/Ubuntu.qcow2.zip
   source_hash:
   default_ttl_seconds: 86400
   bootstrap_script_extra:
   requires_kvm: true
   _type: cube.resource.VMResourceConfig
   type: VMResourceConfig
-status: active
+status: degraded
 task_count: 368
 has_debug_task: true
 has_debug_agent: true
