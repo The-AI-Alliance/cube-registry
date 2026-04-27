@@ -25,7 +25,7 @@ legal:
   wrapper_license: MIT
   benchmark_license:
     reported: Apache-2.0
-    source_url: "https://github.com/WebArena-Verified/webarena-verified/blob/main/LICENSE"
+    source_url: "https://github.com/ServiceNow/webarena-verified/blob/main/LICENSE"
     verified_by_original_authors: false
   notices:
   - type: live_website_clone
