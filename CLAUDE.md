@@ -48,6 +48,20 @@ cube-registry/
 | CI pipeline (ownership, quick, slow, health) | [ci/spec.md](openspec/specs/ci/spec.md) |
 | Static site generation | [site/spec.md](openspec/specs/site/spec.md) |
 
+## Engineering principles
+
+- **Read the spec first.** Before touching any change, read the relevant spec in `openspec/specs/`. Specs are the authoritative design intent — but they can be stale or wrong; flag discrepancies rather than silently working around them.
+- **Fix in the right place.** A quick local experiment to understand a problem is fine. But the committed fix must address the root cause correctly — not a workaround scoped to a single call site or context.
+- **Understand before fixing.** Many bad fixes come from acting too fast. Make sure you understand the broader design before proposing a change. A fix that misses the bigger picture is worse than no fix.
+- **Lean diffs.** Make the minimal change that solves the problem. Avoid verbose additions, unnecessary abstractions, and duplicated logic that already exists elsewhere. If existing code can be reused or consolidated, do it. A hard-to-review diff is a liability.
+- **Think long-term.** Every change should age well. Ask whether today's shortcut becomes tomorrow's debt — and whether the design could evolve cleanly if requirements change.
+
+## Code review
+
+**Sign your commits.** Every commit needs a `Signed-off-by` line (`git commit -s`). DCO is enforced by CI — unsigned commits will be blocked.
+
+PRs are reviewed with `/code-review` ([plugin docs](https://github.com/anthropics/claude-code/blob/main/plugins/code-review/README.md)), which audits changes against these guidelines. Write PRs as if a reviewer will check each principle above against the diff.
+
 ## Workflow for code changes
 
 1. **Schema changes** (adding/removing fields) → update `registry-schema.json`, the
