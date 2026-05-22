@@ -70,8 +70,10 @@ PRs are reviewed with `/code-review` ([plugin docs](https://github.com/anthropic
    [ci/spec.md](openspec/specs/ci/spec.md) Invariants).
 3. **Site templates** → regenerate `docs/` via CI. Never commit `docs/` changes by
    hand — CI's `generate-site.yml` is the source of truth.
-4. **OpenSpec changes**: for anything non-trivial, create
-   `openspec/changes/<name>/{proposal.md,deltas.md}` before coding.
+4. **OpenSpec changes**: for breaking or multi-invariant contract changes, create
+   `openspec/changes/<name>/{proposal.md,deltas.md}` before coding; additive changes
+   just edit the spec. Keep proposals concise and skimmable — favor schemas/signatures
+   over prose, and show each thing once.
 
 ## Security boundaries (do NOT violate)
 
