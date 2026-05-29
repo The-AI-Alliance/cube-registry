@@ -1,0 +1,237 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/The-AI-Alliance/cube-registry/results-schema.json",
+  "title": "CUBE Registry Community Result",
+  "description": "Schema for one community-submitted evaluation result. One file per experiment-level run, stored at results/<cube-id>/<evaluation_id>.json. See openspec/changes/results-journal/ for design rationale.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evaluation_id",
+    "evaluation_timestamp",
+    "eval_library",
+    "agent",
+    "benchmark_name",
+    "benchmark_version",
+    "benchmark_subset",
+    "results"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Bumped on any non-backward-compatible change to this file."
+    },
+    "evaluation_id": {
+      "type": "string",
+      "description": "Globally unique identifier for this run within results/<cube-id>/. Format: <submitter>/<run-name>. Slashes are replaced with __ in the filename.",
+      "pattern": "^[A-Za-z0-9_./-]{1,128}$"
+    },
+    "evaluation_timestamp": {
+      "type": "number",
+      "description": "Unix epoch seconds when the experiment started.",
+      "minimum": 1577836800
+    },
+    "supersedes": {
+      "type": "string",
+      "description": "Optional evaluation_id of a prior submission this one corrects. The journal is append-only; mistakes are fixed by submitting a new record that supersedes the old.",
+      "pattern": "^[A-Za-z0-9_./-]{1,128}$"
+    },
+    "eval_library": {
+      "type": "object",
+      "description": "The harness / evaluation library that ran the experiment.",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Library name (e.g. cube-harness, inspect_ai, lm_eval, helm)."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Library version string."
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "description": "Agent descriptor: enough to identify and re-instantiate the agent that produced this result.",
+      "required": ["agent_id", "config_type", "llm_model", "framework_version", "git_commit"],
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "type": "string",
+          "description": "SHA-256 of the serialized agent config; stable across runs of the same config.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "config_type": {
+          "type": "string",
+          "description": "Agent config class name (e.g. ReActConfig, GennyConfig).",
+          "minLength": 1
+        },
+        "llm_model": {
+          "type": "string",
+          "description": "LLM identifier in LiteLLM/provider-prefixed form (e.g. azure/gpt-5.4-mini, anthropic/claude-opus-4-7).",
+          "minLength": 1
+        },
+        "framework_version": {
+          "type": "string",
+          "description": "Version of the eval library at the time of the run (typically matches eval_library.version).",
+          "minLength": 1
+        },
+        "dependency_versions": {
+          "type": "object",
+          "description": "Installed versions of tracked packages at run time.",
+          "additionalProperties": {"type": "string"}
+        },
+        "git_commit": {
+          "type": "string",
+          "description": "Git SHA-1 of the eval library's repo HEAD at run time.",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "git_remote_url": {
+          "type": "string",
+          "description": "Permanent URL pointing to the exact commit (e.g. https://github.com/.../tree/<sha>).",
+          "format": "uri"
+        },
+        "git_is_dirty": {
+          "type": "boolean",
+          "description": "True if the eval library had uncommitted changes at run time."
+        },
+        "cube_standard_git_commit": {
+          "type": "string",
+          "description": "Optional: git SHA-1 of the installed cube-standard checkout (populated when cube-standard is an editable install).",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "cube_standard_git_is_dirty": {"type": "boolean"},
+        "config": {
+          "type": "object",
+          "description": "Optional: full serialized agent config. Recommended for reproducibility but may be omitted if it contains sensitive fields."
+        }
+      }
+    },
+    "benchmark_name": {
+      "type": "string",
+      "description": "Benchmark id; must equal the <cube-id> segment of the file path.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "benchmark_version": {
+      "type": "string",
+      "description": "Version of the benchmark package the result was produced against.",
+      "minLength": 1
+    },
+    "benchmark_subset": {
+      "type": "object",
+      "description": "Which subset of the benchmark was evaluated.",
+      "required": ["name", "n_tasks"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display label for the subset (e.g. 'miniwob[level=all]', 'workarena.l1', 'swebench-verified[split=test]').",
+          "minLength": 1
+        },
+        "n_tasks": {
+          "type": "integer",
+          "description": "Denominator: number of tasks the subset contains. The outcomes block must sum to this number.",
+          "minimum": 1
+        },
+        "filter": {
+          "type": "string",
+          "description": "Optional: derivation expression (filter string, glob, or named split) used to produce the subset from the full benchmark."
+        },
+        "task_ids": {
+          "type": "array",
+          "description": "Optional: explicit task-id list. Use when neither name nor filter uniquely pins the subset; omit when long.",
+          "items": {"type": "string"},
+          "minItems": 1
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "description": "Aggregate metrics plus mutually-exclusive outcome counts.",
+      "required": ["avg_score", "outcomes"],
+      "additionalProperties": false,
+      "properties": {
+        "avg_score": {
+          "type": "number",
+          "description": "Mean reward across all tasks in the subset.",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "std_err": {
+          "type": "number",
+          "description": "Standard error of avg_score (typically std_dev / sqrt(n_tasks)).",
+          "minimum": 0
+        },
+        "total_cost_usd": {
+          "type": "number",
+          "description": "Total LLM cost for the run in USD.",
+          "minimum": 0
+        },
+        "avg_wall_time_s": {
+          "type": "number",
+          "description": "Mean per-episode wall-clock time in seconds.",
+          "minimum": 0
+        },
+        "max_steps_per_episode": {
+          "type": "integer",
+          "description": "The per-episode step cap that was in force during the run.",
+          "minimum": 1
+        },
+        "outcomes": {
+          "type": "object",
+          "description": "Task-level outcome breakdown. Mutually exclusive and exhaustive: the five counts must sum to benchmark_subset.n_tasks.",
+          "required": [
+            "n_success",
+            "n_failure",
+            "n_max_steps",
+            "n_system_error",
+            "n_missing"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "n_success": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Episodes that reached done=True with reward > 0."
+            },
+            "n_failure": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Episodes that reached done=True with reward == 0 (clean fail per the verifier)."
+            },
+            "n_max_steps": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Episodes the loop exited because the step cap fired before done=True (no agent crash)."
+            },
+            "n_system_error": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Episodes aborted with an exception (agent crash, infra failure, tool error)."
+            },
+            "n_missing": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Tasks in the subset that were never attempted (e.g. infra unavailable)."
+            }
+          }
+        }
+      }
+    },
+    "findings_summary": {
+      "type": "object",
+      "description": "Optional: counts per investigator blame-category, when a post-hoc investigator ran.",
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "instance_results_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional: pointer to externally-hosted per-task data (e.g. JSONL on HuggingFace). The registry journal stores aggregates only."
+    }
+  }
+}

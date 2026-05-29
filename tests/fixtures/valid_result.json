@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "evaluation_id": "alacoste/20260404_195953_genny_miniwob",
+  "evaluation_timestamp": 1748560000.0,
+  "eval_library": {
+    "name": "cube-harness",
+    "version": "0.5.2"
+  },
+  "agent": {
+    "agent_id": "a3f9e2d4c1b80000000000000000000000000000000000000000000000000000",
+    "config_type": "GennyConfig",
+    "llm_model": "azure/gpt-5.4-mini",
+    "framework_version": "0.5.2",
+    "dependency_versions": {
+      "cube-harness": "0.5.2",
+      "cube": "0.3.1",
+      "litellm": "1.55.0"
+    },
+    "git_commit": "f6a3b2e9d8c1b4a700000000000000000000abcd",
+    "git_remote_url": "https://github.com/The-AI-Alliance/cube-harness/tree/f6a3b2e9d8c1b4a700000000000000000000abcd",
+    "git_is_dirty": false,
+    "cube_standard_git_commit": "8e2b9c4a1d7f3e6b00000000000000000000abcd",
+    "cube_standard_git_is_dirty": false
+  },
+  "benchmark_name": "miniwob",
+  "benchmark_version": "1.0.0",
+  "benchmark_subset": {
+    "name": "miniwob[level=all]",
+    "n_tasks": 125,
+    "filter": "level=all"
+  },
+  "results": {
+    "avg_score": 0.664,
+    "std_err": 0.043,
+    "total_cost_usd": 12.34,
+    "avg_wall_time_s": 47.2,
+    "max_steps_per_episode": 30,
+    "outcomes": {
+      "n_success": 83,
+      "n_failure": 32,
+      "n_max_steps": 7,
+      "n_system_error": 3,
+      "n_missing": 0
+    }
+  }
+}

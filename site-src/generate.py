@@ -12,7 +12,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -23,6 +22,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 SCRIPT_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = SCRIPT_DIR.parent
 ENTRIES_DIR = REPO_ROOT / "entries"
+RESULTS_DIR = REPO_ROOT / "results"
 TEMPLATES_DIR = SCRIPT_DIR / "templates"
 DOCS_DIR = REPO_ROOT / "docs"
 
@@ -45,9 +45,9 @@ TAG_COLOURS: dict[str, str] = {
 }
 
 STATUS_BADGE: dict[str, dict[str, str]] = {
-    "active":   {"bg": "bg-green-100",  "text": "text-green-800",  "label": "Active"},
+    "active": {"bg": "bg-green-100", "text": "text-green-800", "label": "Active"},
     "degraded": {"bg": "bg-yellow-100", "text": "text-yellow-800", "label": "Degraded"},
-    "archived": {"bg": "bg-gray-100",   "text": "text-gray-500",   "label": "Archived"},
+    "archived": {"bg": "bg-gray-100", "text": "text-gray-500", "label": "Archived"},
 }
 
 
@@ -85,8 +85,12 @@ def enrich_entry(entry: dict[str, Any]) -> dict[str, Any]:
         # GitHub link to the YAML file (view + raw)
         try:
             rel = Path(path).relative_to(REPO_ROOT)
-            e["_github_yaml_url"] = f"https://github.com/The-AI-Alliance/cube-registry/blob/main/{rel}"
-            e["_github_raw_yaml_url"] = f"https://raw.githubusercontent.com/The-AI-Alliance/cube-registry/main/{rel}"
+            e["_github_yaml_url"] = (
+                f"https://github.com/The-AI-Alliance/cube-registry/blob/main/{rel}"
+            )
+            e["_github_raw_yaml_url"] = (
+                f"https://raw.githubusercontent.com/The-AI-Alliance/cube-registry/main/{rel}"
+            )
         except ValueError:
             e["_github_yaml_url"] = ""
             e["_github_raw_yaml_url"] = ""
@@ -103,8 +107,7 @@ def enrich_entry(entry: dict[str, Any]) -> dict[str, Any]:
     # Tag chips
     tags = e.get("tags", []) or []
     e["tag_chips"] = [
-        {"label": t, "cls": TAG_COLOURS.get(t, "bg-gray-100 text-gray-700")}
-        for t in tags
+        {"label": t, "cls": TAG_COLOURS.get(t, "bg-gray-100 text-gray-700")} for t in tags
     ]
 
     # Description truncated for card
@@ -130,6 +133,53 @@ def enrich_entry(entry: dict[str, Any]) -> dict[str, Any]:
     e["has_stress_results"] = bool(e.get("stress_results_url"))
 
     return e
+
+
+def load_results(entry: dict) -> list[dict[str, Any]]:
+    """Load community-submitted results for *entry*, newest first.
+
+    Returns a list of dicts ready for template rendering: the parsed JSON plus
+    ``_submitter`` (GitHub handle from ``_submissions.json``) and ``_date`` (ISO
+    YYYY-MM-DD derived from evaluation_timestamp).
+    """
+    cube_id = entry.get("id")
+    if not cube_id:
+        return []
+    cube_results_dir = RESULTS_DIR / cube_id
+    if not cube_results_dir.exists():
+        return []
+
+    submissions_path = cube_results_dir / "_submissions.json"
+    submissions: dict[str, dict[str, str]] = {}
+    if submissions_path.exists():
+        try:
+            data = json.loads(submissions_path.read_text())
+            if isinstance(data, dict):
+                submissions = data
+        except json.JSONDecodeError:
+            pass
+
+    results: list[dict[str, Any]] = []
+    for result_path in sorted(cube_results_dir.glob("*.json")):
+        if result_path.name.startswith("_"):
+            continue
+        try:
+            record = json.loads(result_path.read_text())
+        except json.JSONDecodeError:
+            continue
+        eid = record.get("evaluation_id", "")
+        sub_meta = submissions.get(eid, {})
+        record["_submitter"] = sub_meta.get("submitted_by", "—")
+        ts = record.get("evaluation_timestamp")
+        if isinstance(ts, (int, float)):
+            record["_date"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        else:
+            record["_date"] = "—"
+        results.append(record)
+
+    # Newest first by evaluation_timestamp.
+    results.sort(key=lambda r: r.get("evaluation_timestamp", 0), reverse=True)
+    return results
 
 
 def load_stress_results(entry: dict) -> dict | None:
@@ -189,14 +239,8 @@ def generate(dry_run: bool = False) -> None:
     index_tmpl = env.get_template("index.html.j2")
     # Collect all unique tags and features for filter bar
     all_tags = sorted({t for e in entries for t in (e.get("tags") or [])})
-    all_features = sorted({
-        f for e in entries
-        for f in (e.get("features_list") or [])
-    })
-    all_infra = sorted({
-        p for e in entries
-        for p in (e.get("supported_infra") or [])
-    })
+    all_features = sorted({f for e in entries for f in (e.get("features_list") or [])})
+    all_infra = sorted({p for e in entries for p in (e.get("supported_infra") or [])})
 
     index_html = index_tmpl.render(
         entries=entries,
@@ -220,10 +264,12 @@ def generate(dry_run: bool = False) -> None:
             bench_dir.mkdir(parents=True, exist_ok=True)
 
         stress_data = load_stress_results(entry)
+        results_data = load_results(entry)
 
         bench_html = bench_tmpl.render(
             entry=entry,
             stress_data=stress_data,
+            results_data=results_data,
             generated_at=generated_at,
         )
 
@@ -236,8 +282,11 @@ def generate(dry_run: bool = False) -> None:
 
 def main() -> None:
     import argparse
+
     parser = argparse.ArgumentParser(description="Generate CUBE Registry static site.")
-    parser.add_argument("--dry-run", action="store_true", help="Parse and render but don't write files.")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Parse and render but don't write files."
+    )
     args = parser.parse_args()
 
     print("=== CUBE Registry Site Generator ===")

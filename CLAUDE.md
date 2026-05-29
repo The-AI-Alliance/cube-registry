@@ -1,30 +1,37 @@
 # CLAUDE.md — cube-registry
 
 You are working in **cube-registry**, the public catalog of CUBE-compliant
-benchmarks. This is a metadata-only repo — it hosts YAML entries and CI scripts,
-not benchmark code.
+benchmarks plus a per-cube **community results journal**. This is a metadata +
+journal repo — it hosts YAML entries, community result JSONs, and CI scripts,
+but no benchmark code.
 
 ## What this repo is
 
-One YAML file per benchmark in `entries/`, a JSON Schema to validate them, CI to
-enforce ownership and compliance, and a Jinja2-based static site. Benchmarks
-themselves live on PyPI; entries only reference them.
+One YAML file per benchmark in `entries/`, a JSON Schema to validate them, CI
+to enforce ownership and compliance, a per-cube results journal in `results/`
+(auto-merged community submissions), and a Jinja2-based static site.
+Benchmarks themselves live on PyPI; entries only reference them.
 
 ## Package layout
 
 ```
 cube-registry/
 ├── entries/                       One YAML per benchmark (globally unique id)
+├── results/                       Community-submitted eval results, append-only
+│   └── <cube-id>/                 One JSON per run + _submissions.json (bot-only)
 ├── OWNERS.yaml                    id → [github handles]; written only by CI bot
 ├── known-authors.yaml             Manually curated: original paper authors
 ├── registry-schema.json           JSON Schema for entry validation
+├── results-schema.json            JSON Schema for community result records
 ├── stress-results/                Written by slow-check only
 ├── scripts/                       CI pipeline scripts
 │   ├── ownership_check.py
 │   ├── quick_check.py
 │   ├── slow_check.py
 │   ├── health_check.py
-│   └── update_owners.py
+│   ├── update_owners.py
+│   ├── results_check.py
+│   └── record_submitter.py
 ├── site-src/                      Jinja2-based site generator → docs/
 │   ├── generate.py
 │   └── templates/
@@ -35,7 +42,9 @@ cube-registry/
 │   ├── update-owners.yml
 │   ├── generate-site.yml
 │   ├── periodic-health-check.yml
-│   └── manual-refresh.yml
+│   ├── manual-refresh.yml
+│   ├── results-check.yml          Validates + auto-merges results/ PRs
+│   └── record-submitter.yml       Bot-only: writes _submissions.json post-merge
 ├── tests/                         pytest for scripts/ and site-src/
 └── openspec/specs/                Authoritative specs for entry / CI / site
 ```
@@ -80,6 +89,11 @@ PRs are reviewed with `/code-review` ([plugin docs](https://github.com/anthropic
 - `OWNERS.yaml` is writable only by the CI bot (path-restricted bypass rule).
 - `stress-results/` is writable only by the CI bot.
 - `docs/` is writable only by the CI bot (via `generate-site`).
+- `results/*/_submissions.json` is writable only by the CI bot (via `record-submitter`).
+- `results/` accepts community PRs and auto-merges them iff `results-check`
+  passes and the diff is strictly additions under `results/<cube>/*.json`. Any
+  modification or deletion of an existing file in `results/` is rejected (the
+  journal is append-only).
 - Ownership check reads `origin/main`, never the PR branch.
 - Quick-check runs in a hardened Docker sandbox WITHOUT cloud credentials.
 - Slow-check has credentials but NEVER imports the benchmark package — the package
