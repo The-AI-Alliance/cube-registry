@@ -135,12 +135,22 @@ def enrich_entry(entry: dict[str, Any]) -> dict[str, Any]:
     return e
 
 
+# Limit how many rows we render in the per-cube Results table. Older
+# submissions stay accessible via the "View all on GitHub" link rendered when
+# this cap is exceeded.
+RESULTS_PAGE_LIMIT = 10
+
+_GITHUB_RAW_BLOB = "https://github.com/The-AI-Alliance/cube-registry/blob/main"
+_GITHUB_TREE = "https://github.com/The-AI-Alliance/cube-registry/tree/main"
+
+
 def load_results(entry: dict) -> list[dict[str, Any]]:
     """Load community-submitted results for *entry*, newest first.
 
     Returns a list of dicts ready for template rendering: the parsed JSON plus
-    ``_submitter`` (GitHub handle from ``_submissions.json``) and ``_date`` (ISO
-    YYYY-MM-DD derived from evaluation_timestamp).
+    ``_submitter`` (GitHub handle from ``_submissions.json``), ``_date`` (ISO
+    YYYY-MM-DD derived from evaluation_timestamp), and ``_detail_url`` (link
+    to the raw JSON file on GitHub, which renders the full record).
     """
     cube_id = entry.get("id")
     if not cube_id:
@@ -175,11 +185,17 @@ def load_results(entry: dict) -> list[dict[str, Any]]:
             record["_date"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
         else:
             record["_date"] = "—"
+        record["_detail_url"] = f"{_GITHUB_RAW_BLOB}/results/{cube_id}/{result_path.name}"
         results.append(record)
 
     # Newest first by evaluation_timestamp.
     results.sort(key=lambda r: r.get("evaluation_timestamp", 0), reverse=True)
     return results
+
+
+def results_dir_url(cube_id: str) -> str:
+    """GitHub directory URL used by the 'View all N submissions' link."""
+    return f"{_GITHUB_TREE}/results/{cube_id}"
 
 
 def load_stress_results(entry: dict) -> dict | None:
@@ -264,12 +280,14 @@ def generate(dry_run: bool = False) -> None:
             bench_dir.mkdir(parents=True, exist_ok=True)
 
         stress_data = load_stress_results(entry)
-        results_data = load_results(entry)
+        all_results = load_results(entry)
 
         bench_html = bench_tmpl.render(
             entry=entry,
             stress_data=stress_data,
-            results_data=results_data,
+            results_data=all_results[:RESULTS_PAGE_LIMIT],
+            results_count=len(all_results),
+            results_dir_url=results_dir_url(benchmark_id),
             generated_at=generated_at,
         )
 

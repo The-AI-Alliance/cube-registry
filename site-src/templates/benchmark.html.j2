@@ -327,12 +327,22 @@
   <!-- ── Community results journal ─────────────────────────────────────── -->
   <section class="bg-white rounded-xl border border-gray-200 p-5">
     <div class="flex items-baseline justify-between mb-1">
-      <h2 class="text-lg font-bold">Community results</h2>
+      <h2 class="text-lg font-bold">
+        Community results
+        {% if results_data %}
+        <span class="ml-2 text-xs font-normal text-gray-400">{{ results_count }} total</span>
+        {% endif %}
+      </h2>
       <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/README.md#submitting-a-result"
          class="text-xs text-indigo-600 hover:underline">How to submit →</a>
     </div>
     <p class="text-xs text-gray-400 mb-4">
-      Self-reported by submitters. Scores are not independently verified — provenance fields let anyone re-run.
+      {% if results_data and results_count > results_data|length -%}
+      Most recent {{ results_data|length }} of {{ results_count }} self-reported runs.
+      {%- elif results_data -%}
+      Self-reported runs.
+      {%- endif %}
+      Scores are not independently verified — click <em>Details</em> for full provenance.
     </p>
     {% if results_data %}
     <div class="overflow-x-auto">
@@ -340,14 +350,11 @@
         <thead>
           <tr class="bg-gray-50 border-b border-gray-100">
             <th class="px-3 py-2 text-left">Date</th>
-            <th class="px-3 py-2 text-left">Submitter</th>
-            <th class="px-3 py-2 text-left">Agent</th>
-            <th class="px-3 py-2 text-left">Model</th>
+            <th class="px-3 py-2 text-left">Agent / Model</th>
             <th class="px-3 py-2 text-left">Subset</th>
             <th class="px-3 py-2 text-right">Score</th>
-            <th class="px-3 py-2 text-left">Outcomes (✓/✗/⏱/💥/–)</th>
-            <th class="px-3 py-2 text-right">Cost (USD)</th>
-            <th class="px-3 py-2 text-left">Provenance</th>
+            <th class="px-3 py-2 text-left">Outcomes</th>
+            <th class="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody>
@@ -356,36 +363,43 @@
           <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
             <td class="px-3 py-1.5 whitespace-nowrap text-gray-500">{{ r._date }}</td>
             <td class="px-3 py-1.5 whitespace-nowrap">
-              {% if r._submitter and r._submitter != '—' %}
-              <a href="https://github.com/{{ r._submitter }}" class="text-indigo-600 hover:underline">@{{ r._submitter }}</a>
-              {% else %}<span class="text-gray-400">—</span>{% endif %}
+              <span class="font-mono text-gray-700">{{ r.agent.config_type }}</span>
+              <span class="text-gray-400">/</span>
+              <span class="font-mono text-gray-700">{{ r.agent.llm_model }}</span>
             </td>
-            <td class="px-3 py-1.5 whitespace-nowrap font-mono text-gray-700">{{ r.agent.config_type }}</td>
-            <td class="px-3 py-1.5 whitespace-nowrap font-mono text-gray-700">{{ r.agent.llm_model }}</td>
-            <td class="px-3 py-1.5 font-mono text-gray-500">{{ r.benchmark_subset.name }}</td>
-            <td class="px-3 py-1.5 text-right font-semibold text-gray-800">
+            <td class="px-3 py-1.5 font-mono text-gray-500 whitespace-nowrap">
+              {{ r.benchmark_subset.name }}
+              <span class="text-gray-400">· {{ r.benchmark_subset.n_tasks }} tasks</span>
+            </td>
+            <td class="px-3 py-1.5 text-right font-semibold text-gray-800 whitespace-nowrap">
               {{ "%.3f"|format(r.results.avg_score) }}{% if r.results.std_err is defined %}<span class="text-gray-400"> ± {{ "%.3f"|format(r.results.std_err) }}</span>{% endif %}
             </td>
             <td class="px-3 py-1.5 whitespace-nowrap font-mono text-xs">
-              <span class="text-green-700">{{ outc.n_success }}</span>/<span class="text-red-700">{{ outc.n_failure }}</span>/<span class="text-yellow-700">{{ outc.n_max_steps }}</span>/<span class="text-purple-700">{{ outc.n_system_error }}</span>/<span class="text-gray-500">{{ outc.n_missing }}</span>
-              <span class="text-gray-400"> of {{ r.benchmark_subset.n_tasks }}</span>
+              <span class="text-green-700" title="success">{{ outc.n_success }}</span><span class="text-gray-300">/</span><span class="text-red-700" title="clean failure">{{ outc.n_failure }}</span><span class="text-gray-300">/</span><span class="text-yellow-700" title="max steps">{{ outc.n_max_steps }}</span><span class="text-gray-300">/</span><span class="text-purple-700" title="system error">{{ outc.n_system_error }}</span><span class="text-gray-300">/</span><span class="text-gray-500" title="missing">{{ outc.n_missing }}</span>
             </td>
-            <td class="px-3 py-1.5 text-right text-gray-700">{% if r.results.total_cost_usd is defined %}${{ "%.2f"|format(r.results.total_cost_usd) }}{% else %}—{% endif %}</td>
-            <td class="px-3 py-1.5 whitespace-nowrap">
-              <span class="font-mono text-gray-500">{{ r.eval_library.name }} {{ r.eval_library.version }}</span>
-              {% if r.agent.git_remote_url %}
-              · <a href="{{ r.agent.git_remote_url }}" class="text-indigo-600 hover:underline">{{ r.agent.git_commit[:7] }}</a>
-              {% endif %}
-              {% if r.agent.git_is_dirty %}<span class="ml-1 text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">dirty</span>{% endif %}
+            <td class="px-3 py-1.5 text-right whitespace-nowrap">
+              <a href="{{ r._detail_url }}"
+                 class="text-indigo-600 hover:underline">Details →</a>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <p class="mt-3 text-xs text-gray-400">
-      ✓ success · ✗ clean failure · ⏱ max-steps reached · 💥 system error · – missing
-    </p>
+    <div class="mt-3 flex items-baseline justify-between text-xs text-gray-400">
+      <span>
+        <span class="text-green-700">✓</span> success ·
+        <span class="text-red-700">✗</span> failure ·
+        <span class="text-yellow-700">⏱</span> max-steps ·
+        <span class="text-purple-700">💥</span> system error ·
+        <span class="text-gray-500">–</span> missing
+      </span>
+      {% if results_count > results_data|length %}
+      <a href="{{ results_dir_url }}" class="text-indigo-600 hover:underline">
+        View all {{ results_count }} submissions on GitHub →
+      </a>
+      {% endif %}
+    </div>
     {% else %}
     <p class="text-sm text-gray-400 text-center py-6">
       No community results submitted yet. Be the first — see <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/README.md#submitting-a-result" class="text-indigo-600 hover:underline">how to submit</a>.
