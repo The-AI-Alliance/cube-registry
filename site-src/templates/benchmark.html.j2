@@ -585,15 +585,20 @@
       });
 
       // Per-package diff renderer for dependency_versions cells. Each input
-      // dict gets one column; each row of the inner sub-table is one package.
+      // dict gets one column; each row of the inner sub-tables is one package.
       // Rows where versions disagree across columns get amber backgrounds —
       // that's the signal that matters when you've selected 2+ runs. The outer
       // cell's amber-or-not mirrors "any package differs".
-      function renderDepsCells(dicts, cols) {
+      //
+      // Within a cell, packages are split into two tiers:
+      //   primary   — pinned inline at the top, always visible
+      //   secondary — inside a <details> collapsible
+      // The primary set is the union of each column's `agent.primary_dependencies`,
+      // so two submissions with different primary lists still show every primary
+      // package from either side at the top.
+      function renderDepsCells(dicts, primarySets, cols) {
         const allKeys = Array.from(new Set(dicts.flatMap(d => Object.keys(d || {})))).sort();
-        const totalKeys = allKeys.length;
-        if (totalKeys === 0) {
-          // Empty deps across all selected columns.
+        if (allKeys.length === 0) {
           let html = '';
           for (let i = 0; i < cols; i++) {
             html += '<td class="px-3 py-1.5 border border-gray-100 align-top"><span class="text-gray-400">—</span></td>';
@@ -601,45 +606,74 @@
           return html;
         }
 
-        // Which packages differ across columns? For N=1 the answer is always
-        // "none" (allEqual short-circuits via cols===1).
-        const diffKeys = cols === 1 ? [] : allKeys.filter(k => {
+        const unionPrimary = new Set();
+        for (const s of primarySets) for (const k of s) unionPrimary.add(k);
+        const primaryKeys   = allKeys.filter(k => unionPrimary.has(k));
+        const secondaryKeys = allKeys.filter(k => !unionPrimary.has(k));
+
+        // For N=1 there's nothing to diff. For N>=2 a key "differs" if not all
+        // columns agree on its version (missing counts as differing).
+        const keyDiffers = (k) => {
+          if (cols === 1) return false;
           const first = (dicts[0] || {})[k];
           return dicts.some(d => (d || {})[k] !== first);
-        });
-        const summarySuffix = cols >= 2
-          ? (diffKeys.length === 0 ? ' · all match' : ' · ' + diffKeys.length + ' differ')
-          : '';
+        };
+        const diffPrimary   = primaryKeys.filter(keyDiffers);
+        const diffSecondary = secondaryKeys.filter(keyDiffers);
+        const diffSet = new Set([...diffPrimary, ...diffSecondary]);
+        const cellDiff = diffSet.size > 0 ? ' bg-amber-50' : '';
 
-        // The cell-level amber background: amber if there's any disagreement.
-        const cellDiff = diffKeys.length > 0 ? ' bg-amber-50' : '';
-
-        // Each column shows the same summary; the expanded sub-table is per
-        // column so the user can read each column's own version list cleanly.
-        let html = '';
-        for (let c = 0; c < cols; c++) {
-          const d = dicts[c] || {};
-          // Sub-table rows: one per package, amber when this key is in diffKeys.
-          let inner = '<table class="mt-2 w-full border-collapse text-[11px]"><tbody>';
-          const diffSet = new Set(diffKeys);
-          for (const k of allKeys) {
-            const v = d[k];
+        const renderRows = (keys, dict) => {
+          let rows = '';
+          for (const k of keys) {
+            const v = dict[k];
             const rowDiff = diffSet.has(k) ? 'bg-amber-50' : '';
             const valHtml = v == null
               ? '<span class="text-gray-400">— missing</span>'
               : escapeHtml(v);
-            inner += '<tr class="' + rowDiff + '">' +
+            rows += '<tr class="' + rowDiff + '">' +
               '<td class="px-2 py-0.5 text-gray-500 font-mono break-all align-top" style="width:55%">' + escapeHtml(k) + '</td>' +
               '<td class="px-2 py-0.5 text-gray-800 font-mono break-all align-top">' + valHtml + '</td>' +
               '</tr>';
           }
-          inner += '</tbody></table>';
-          html += '<td class="px-3 py-1.5 border border-gray-100 align-top' + cellDiff + '">' +
-            '<details class="cursor-pointer">' +
-            '<summary class="text-gray-700">▶ ' + totalKeys + ' items' + summarySuffix + '</summary>' +
-            inner +
-            '</details>' +
-            '</td>';
+          return rows;
+        };
+
+        // Summary line: report counts at both tiers when we have at least one
+        // primary and at least one secondary; otherwise compact.
+        const summary = () => {
+          const parts = [];
+          if (primaryKeys.length) {
+            const tail = cols >= 2
+              ? (diffPrimary.length ? ' (' + diffPrimary.length + ' differ)' : '')
+              : '';
+            parts.push(primaryKeys.length + ' primary' + tail);
+          }
+          if (secondaryKeys.length) {
+            const tail = cols >= 2
+              ? (diffSecondary.length ? ' (' + diffSecondary.length + ' differ)' : '')
+              : '';
+            parts.push(secondaryKeys.length + ' secondary' + tail);
+          }
+          return parts.join(' · ');
+        };
+
+        let html = '';
+        for (let c = 0; c < cols; c++) {
+          const d = dicts[c] || {};
+          let cell = '<div class="text-[11px] font-medium text-gray-500 mb-1">' + summary() + '</div>';
+          if (primaryKeys.length) {
+            cell += '<table class="w-full border-collapse text-[11px] mb-1"><tbody>' +
+              renderRows(primaryKeys, d) + '</tbody></table>';
+          }
+          if (secondaryKeys.length) {
+            cell += '<details class="cursor-pointer">' +
+              '<summary class="text-gray-500 text-[11px]">▶ secondary (' + secondaryKeys.length + ' items)</summary>' +
+              '<table class="mt-1 w-full border-collapse text-[11px]"><tbody>' +
+              renderRows(secondaryKeys, d) + '</tbody></table>' +
+              '</details>';
+          }
+          html += '<td class="px-3 py-1.5 border border-gray-100 align-top' + cellDiff + '">' + cell + '</td>';
         }
         return html;
       }
@@ -681,7 +715,8 @@
               escapeHtml(label) + '</td>';
 
             if (kind === 'deps') {
-              html += renderDepsCells(values, cols);
+              const primarySets = recs.map(r => new Set((r.agent && r.agent.primary_dependencies) || []));
+              html += renderDepsCells(values, primarySets, cols);
             } else {
               // For N=1 there is nothing to diff, so don't highlight cells.
               // For N>=2 a mismatched value lights up amber.

@@ -83,8 +83,14 @@
         },
         "dependency_versions": {
           "type": "object",
-          "description": "Installed versions of tracked packages at run time.",
+          "description": "Installed versions of every distribution imported into the experiment's process at run time, minus a curated denylist of behaviorally-inert plumbing.",
           "additionalProperties": {"type": "string"}
+        },
+        "primary_dependencies": {
+          "type": "array",
+          "description": "Subset of dependency_versions whose drift most directly affects scores (LLM gateway + provider SDKs, tokenizers, env runtimes, schema validation). UIs render these prominently; the rest stay in dependency_versions.",
+          "items": {"type": "string"},
+          "uniqueItems": true
         },
         "git_commit": {
           "type": "string",
