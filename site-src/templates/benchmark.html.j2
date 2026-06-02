@@ -544,9 +544,11 @@
             ['cube-harness dirty?', r => r.agent.git_is_dirty == null ? null : (r.agent.git_is_dirty ? 'yes' : 'no')],
             ['cube-standard commit',r => r.agent.cube_standard_git_commit ? r.agent.cube_standard_git_commit.slice(0,12) : null],
             ['cube-standard dirty?',r => r.agent.cube_standard_git_is_dirty == null ? null : (r.agent.cube_standard_git_is_dirty ? 'yes' : 'no')],
-            ['Dependency versions', r => r.agent.dependency_versions
-              ? Object.entries(r.agent.dependency_versions).map(([k,v]) => k+'='+v).join('\n')
-              : null],
+            // 'deps' kind: rendered as a per-package sub-table with amber
+            // highlights on rows where the columns disagree. The diff signal
+            // matters more than the dump itself.
+            {label: 'Dependency versions', kind: 'deps',
+              get: r => r.agent.dependency_versions || {}},
           ]],
           ['Outcome', [
             ['Score',               r => r.results.avg_score.toFixed(3)],
@@ -582,6 +584,66 @@
         if (e.key === 'Escape') closeCompareModal();
       });
 
+      // Per-package diff renderer for dependency_versions cells. Each input
+      // dict gets one column; each row of the inner sub-table is one package.
+      // Rows where versions disagree across columns get amber backgrounds —
+      // that's the signal that matters when you've selected 2+ runs. The outer
+      // cell's amber-or-not mirrors "any package differs".
+      function renderDepsCells(dicts, cols) {
+        const allKeys = Array.from(new Set(dicts.flatMap(d => Object.keys(d || {})))).sort();
+        const totalKeys = allKeys.length;
+        if (totalKeys === 0) {
+          // Empty deps across all selected columns.
+          let html = '';
+          for (let i = 0; i < cols; i++) {
+            html += '<td class="px-3 py-1.5 border border-gray-100 align-top"><span class="text-gray-400">—</span></td>';
+          }
+          return html;
+        }
+
+        // Which packages differ across columns? For N=1 the answer is always
+        // "none" (allEqual short-circuits via cols===1).
+        const diffKeys = cols === 1 ? [] : allKeys.filter(k => {
+          const first = (dicts[0] || {})[k];
+          return dicts.some(d => (d || {})[k] !== first);
+        });
+        const summarySuffix = cols >= 2
+          ? (diffKeys.length === 0 ? ' · all match' : ' · ' + diffKeys.length + ' differ')
+          : '';
+
+        // The cell-level amber background: amber if there's any disagreement.
+        const cellDiff = diffKeys.length > 0 ? ' bg-amber-50' : '';
+
+        // Each column shows the same summary; the expanded sub-table is per
+        // column so the user can read each column's own version list cleanly.
+        let html = '';
+        for (let c = 0; c < cols; c++) {
+          const d = dicts[c] || {};
+          // Sub-table rows: one per package, amber when this key is in diffKeys.
+          let inner = '<table class="mt-2 w-full border-collapse text-[11px]"><tbody>';
+          const diffSet = new Set(diffKeys);
+          for (const k of allKeys) {
+            const v = d[k];
+            const rowDiff = diffSet.has(k) ? 'bg-amber-50' : '';
+            const valHtml = v == null
+              ? '<span class="text-gray-400">— missing</span>'
+              : escapeHtml(v);
+            inner += '<tr class="' + rowDiff + '">' +
+              '<td class="px-2 py-0.5 text-gray-500 font-mono break-all align-top" style="width:55%">' + escapeHtml(k) + '</td>' +
+              '<td class="px-2 py-0.5 text-gray-800 font-mono break-all align-top">' + valHtml + '</td>' +
+              '</tr>';
+          }
+          inner += '</tbody></table>';
+          html += '<td class="px-3 py-1.5 border border-gray-100 align-top' + cellDiff + '">' +
+            '<details class="cursor-pointer">' +
+            '<summary class="text-gray-700">▶ ' + totalKeys + ' items' + summarySuffix + '</summary>' +
+            inner +
+            '</details>' +
+            '</td>';
+        }
+        return html;
+      }
+
       function renderCompareTable(recs) {
         const plan = fieldPlan();
         const cols = recs.length;
@@ -605,23 +667,31 @@
         html += '</tr></thead><tbody>';
         for (const [groupName, fields] of plan) {
           html += '<tr><td colspan="' + (cols + 1) + '" class="bg-indigo-50 px-3 py-1.5 font-semibold text-indigo-900 text-[11px] uppercase tracking-wider border border-indigo-100">' + escapeHtml(groupName) + '</td></tr>';
-          for (const [label, getter] of fields) {
+          for (const entry of fields) {
+            // Two field-entry shapes:
+            //   ['label', getter]                    → kind 'text' (default)
+            //   {label, kind: 'deps', get: getter}   → typed renderer
+            const label  = Array.isArray(entry) ? entry[0] : entry.label;
+            const getter = Array.isArray(entry) ? entry[1] : entry.get;
+            const kind   = Array.isArray(entry) ? 'text'   : (entry.kind || 'text');
+
             const values = recs.map(r => { try { return getter(r); } catch (e) { return null; } });
-            // For N=1 there is nothing to diff, so don't highlight cells. For
-            // N>=2 a mismatched value lights up amber.
-            const allEqual = cols === 1 || values.every(v => v === values[0]);
-            const labelCell = '<td class="bg-white px-3 py-1.5 text-gray-500 border border-gray-100 align-top">' + escapeHtml(label) + '</td>';
-            html += '<tr>' + labelCell;
-            for (const v of values) {
-              const diffBg = allEqual ? '' : 'bg-amber-50';
-              const cellContent = v == null ? '<span class="text-gray-400">—</span>' :
-                (v.includes && v.includes('\n')
-                  ? '<details class="cursor-pointer"><summary class="text-gray-700">' +
-                    escapeHtml(v.split('\n').length + ' items') +
-                    '</summary><pre class="mt-1 whitespace-pre-wrap break-all text-[11px] text-gray-700">' +
-                    escapeHtml(v) + '</pre></details>'
-                  : '<span class="font-mono text-gray-800 break-all">' + escapeHtml(v) + '</span>');
-              html += '<td class="px-3 py-1.5 border border-gray-100 align-top ' + diffBg + '">' + cellContent + '</td>';
+            html += '<tr>' +
+              '<td class="bg-white px-3 py-1.5 text-gray-500 border border-gray-100 align-top">' +
+              escapeHtml(label) + '</td>';
+
+            if (kind === 'deps') {
+              html += renderDepsCells(values, cols);
+            } else {
+              // For N=1 there is nothing to diff, so don't highlight cells.
+              // For N>=2 a mismatched value lights up amber.
+              const allEqual = cols === 1 || values.every(v => v === values[0]);
+              for (const v of values) {
+                const diffBg = allEqual ? '' : 'bg-amber-50';
+                const cellContent = v == null ? '<span class="text-gray-400">—</span>'
+                  : '<span class="font-mono text-gray-800 break-all">' + escapeHtml(v) + '</span>';
+                html += '<td class="px-3 py-1.5 border border-gray-100 align-top ' + diffBg + '">' + cellContent + '</td>';
+              }
             }
             html += '</tr>';
           }
