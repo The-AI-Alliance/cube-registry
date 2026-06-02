@@ -380,7 +380,7 @@
     <div id="compare-modal" class="fixed inset-0 z-50 hidden bg-gray-900/70 p-4 sm:p-8 overflow-auto">
       <div class="mx-auto max-w-7xl rounded-xl bg-white shadow-2xl">
         <div class="flex items-center justify-between border-b border-gray-200 px-5 py-3">
-          <h3 class="text-base font-bold">Compare submissions</h3>
+          <h3 id="compare-title" class="text-base font-bold">Compare submissions</h3>
           <button id="compare-close" class="text-2xl leading-none text-gray-500 hover:text-gray-800"
                   aria-label="Close">&times;</button>
         </div>
@@ -413,7 +413,10 @@
         clr.classList.toggle('hidden', n === 0);
         btn.disabled = n < 2;
       }
-      document.getElementById('results-compare-btn').addEventListener('click', openCompareModal);
+      document.getElementById('results-compare-btn').addEventListener('click', () => {
+        const recs = Array.from(selected).map(getRecord).filter(Boolean);
+        if (recs.length >= 2) openCompareModal(recs);
+      });
       document.getElementById('results-clear-btn').addEventListener('click', () => {
         selected.clear();
         document.querySelectorAll('.results-checkbox').forEach(cb => { cb.checked = false; });
@@ -478,14 +481,18 @@
           { id: 'outcomes', name: 'Outcomes',
             sort: false,
             formatter: (o) => outcomesCell(o) },
-          { id: 'detailUrl', name: '',
+          // Detail link opens the same modal as Compare, with N=1 — gives a
+          // typed, grouped view of every field instead of dropping the user
+          // into the raw JSON. The Raw JSON link remains in the modal column
+          // header for anyone who needs the literal file.
+          { id: 'eid_detail', name: '',
             sort: false,
-            formatter: (url) => gridjs.html(
-              '<a class="text-indigo-600 hover:underline" href="' +
-              escapeHtml(url) + '">Details →</a>') },
+            formatter: (eid) => gridjs.html(
+              '<button class="results-details text-indigo-600 hover:underline" data-eid="' +
+              escapeHtml(eid) + '">Details →</button>') },
         ],
         data: rows.map(r => [
-          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.scoreNum, r.scoreDisp, r.outcomes, r.detailUrl
+          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.scoreNum, r.scoreDisp, r.outcomes, r.eid
         ]),
         sort: true,
         pagination: { limit: 20 },
@@ -494,10 +501,17 @@
 
       // Selection wiring: delegate change events on the grid container so the
       // handler survives Grid.js re-renders during pagination / sorting.
-      document.getElementById('results-grid').addEventListener('change', (e) => {
+      const grid = document.getElementById('results-grid');
+      grid.addEventListener('change', (e) => {
         if (e.target.classList.contains('results-checkbox')) {
           toggleSelection(e.target.dataset.eid, e.target.checked);
         }
+      });
+      grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.results-details');
+        if (!btn) return;
+        const rec = getRecord(btn.dataset.eid);
+        if (rec) openCompareModal([rec]);
       });
 
       // ── Compare modal ──────────────────────────────────────────────────
@@ -548,11 +562,11 @@
           ]],
         ];
       }
-      function openCompareModal() {
-        const recs = Array.from(selected).map(getRecord).filter(Boolean);
-        if (recs.length < 2) return;
-        const body = document.getElementById('compare-body');
-        body.innerHTML = renderCompareTable(recs);
+      function openCompareModal(recs) {
+        if (!recs || recs.length === 0) return;
+        document.getElementById('compare-title').textContent =
+          recs.length === 1 ? 'Submission details' : 'Compare submissions';
+        document.getElementById('compare-body').innerHTML = renderCompareTable(recs);
         document.getElementById('compare-modal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
       }
@@ -571,11 +585,19 @@
       function renderCompareTable(recs) {
         const plan = fieldPlan();
         const cols = recs.length;
-        let html = '<table class="w-full border-collapse"><thead><tr>' +
-          '<th class="sticky left-0 bg-gray-50 px-3 py-2 text-left font-semibold border border-gray-200" style="min-width:14rem">Field</th>';
+        // table-layout: fixed + a <colgroup> with the Field column pinned at
+        // 14rem makes the submission columns share the remaining width
+        // equally. Combined with `break-all` on data cells, long
+        // monospace strings (sha256 agent_id, git commits, URLs) wrap
+        // inside their column instead of forcing horizontal scroll.
+        let html = '<table class="w-full border-collapse" style="table-layout:fixed">' +
+          '<colgroup><col style="width:14rem">';
+        for (let i = 0; i < cols; i++) html += '<col>';
+        html += '</colgroup><thead><tr>' +
+          '<th class="bg-gray-50 px-3 py-2 text-left font-semibold border border-gray-200">Field</th>';
         for (const r of recs) {
-          html += '<th class="px-3 py-2 text-left font-semibold border border-gray-200 bg-gray-50" style="min-width:18rem">' +
-            '<div class="font-mono text-gray-700">' + escapeHtml(r.agent.config_type || '') + ' / ' + escapeHtml(r.agent.llm_model || '') + '</div>' +
+          html += '<th class="px-3 py-2 text-left font-semibold border border-gray-200 bg-gray-50 align-top">' +
+            '<div class="font-mono text-gray-700 break-all">' + escapeHtml(r.agent.config_type || '') + ' / ' + escapeHtml(r.agent.llm_model || '') + '</div>' +
             '<div class="text-gray-500 font-normal mt-0.5">' + escapeHtml(r._date) + ' · score ' + r.results.avg_score.toFixed(3) + '</div>' +
             '<div class="mt-1"><a class="text-indigo-600 hover:underline" href="' + escapeHtml(r._detail_url) + '">Raw JSON →</a></div>' +
             '</th>';
@@ -585,8 +607,10 @@
           html += '<tr><td colspan="' + (cols + 1) + '" class="bg-indigo-50 px-3 py-1.5 font-semibold text-indigo-900 text-[11px] uppercase tracking-wider border border-indigo-100">' + escapeHtml(groupName) + '</td></tr>';
           for (const [label, getter] of fields) {
             const values = recs.map(r => { try { return getter(r); } catch (e) { return null; } });
-            const allEqual = values.every(v => v === values[0]);
-            const labelCell = '<td class="sticky left-0 bg-white px-3 py-1.5 text-gray-500 border border-gray-100" style="min-width:14rem">' + escapeHtml(label) + '</td>';
+            // For N=1 there is nothing to diff, so don't highlight cells. For
+            // N>=2 a mismatched value lights up amber.
+            const allEqual = cols === 1 || values.every(v => v === values[0]);
+            const labelCell = '<td class="bg-white px-3 py-1.5 text-gray-500 border border-gray-100 align-top">' + escapeHtml(label) + '</td>';
             html += '<tr>' + labelCell;
             for (const v of values) {
               const diffBg = allEqual ? '' : 'bg-amber-50';
@@ -594,16 +618,18 @@
                 (v.includes && v.includes('\n')
                   ? '<details class="cursor-pointer"><summary class="text-gray-700">' +
                     escapeHtml(v.split('\n').length + ' items') +
-                    '</summary><pre class="mt-1 whitespace-pre-wrap text-[11px] text-gray-700">' +
+                    '</summary><pre class="mt-1 whitespace-pre-wrap break-all text-[11px] text-gray-700">' +
                     escapeHtml(v) + '</pre></details>'
-                  : '<span class="font-mono text-gray-800">' + escapeHtml(v) + '</span>');
+                  : '<span class="font-mono text-gray-800 break-all">' + escapeHtml(v) + '</span>');
               html += '<td class="px-3 py-1.5 border border-gray-100 align-top ' + diffBg + '">' + cellContent + '</td>';
             }
             html += '</tr>';
           }
         }
         html += '</tbody></table>';
-        html += '<p class="mt-3 text-[11px] text-gray-400">Cells with <span class="bg-amber-50 px-1">amber background</span> differ between selected submissions.</p>';
+        if (cols >= 2) {
+          html += '<p class="mt-3 text-[11px] text-gray-400">Cells with <span class="bg-amber-50 px-1">amber background</span> differ between selected submissions.</p>';
+        }
         return html;
       }
     })();
