@@ -326,83 +326,292 @@
 
   <!-- ── Community results journal ─────────────────────────────────────── -->
   <section class="bg-white rounded-xl border border-gray-200 p-5">
-    <div class="flex items-baseline justify-between mb-1">
+    <div class="flex items-baseline justify-between mb-3">
       <h2 class="text-lg font-bold">
-        Community results
+        Reproducibility journal
         {% if results_data %}
-        <span class="ml-2 text-xs font-normal text-gray-400">{{ results_count }} total</span>
+        <span class="ml-2 text-xs font-normal text-gray-400">{{ results_count }} submission{{ '' if results_count == 1 else 's' }}</span>
         {% endif %}
       </h2>
       <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/README.md#submitting-a-result"
          class="text-xs text-indigo-600 hover:underline">How to submit →</a>
     </div>
-    <p class="text-xs text-gray-400 mb-4">
-      {% if results_data and results_count > results_data|length -%}
-      Most recent {{ results_data|length }} of {{ results_count }} self-reported runs.
-      {%- elif results_data -%}
-      Self-reported runs.
-      {%- endif %}
-      Scores are not independently verified — click <em>Details</em> for full provenance.
-    </p>
+
+    <!-- Anti-leaderboard callout ─ the framing matters more than the data. -->
+    <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+      <p class="font-semibold mb-1">This is a reproducibility journal — not a leaderboard.</p>
+      <p class="text-amber-800">
+        Submissions document how <em>reference</em> agents and models score over time, across
+        infrastructures, cube versions, and package versions. Use it to detect drift and validate
+        environments. <strong>Not</strong> a place to publish a new agent or fine-tune to "win" — there is no
+        ranking, scores are self-reported, and submissions are unverified. To showcase a new
+        agent or model, use ATLAS / EEE / your own benchmark page.
+      </p>
+    </div>
+
     {% if results_data %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-xs text-gray-600 border border-gray-100 rounded">
-        <thead>
-          <tr class="bg-gray-50 border-b border-gray-100">
-            <th class="px-3 py-2 text-left">Date</th>
-            <th class="px-3 py-2 text-left">Agent / Model</th>
-            <th class="px-3 py-2 text-left">Subset</th>
-            <th class="px-3 py-2 text-right">Score</th>
-            <th class="px-3 py-2 text-left">Outcomes</th>
-            <th class="px-3 py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in results_data %}
-          {% set outc = r.results.outcomes %}
-          <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-            <td class="px-3 py-1.5 whitespace-nowrap text-gray-500">{{ r._date }}</td>
-            <td class="px-3 py-1.5 whitespace-nowrap">
-              <span class="font-mono text-gray-700">{{ r.agent.config_type }}</span>
-              <span class="text-gray-400">/</span>
-              <span class="font-mono text-gray-700">{{ r.agent.llm_model }}</span>
-            </td>
-            <td class="px-3 py-1.5 font-mono text-gray-500 whitespace-nowrap">
-              {{ r.benchmark_subset.name }}
-              <span class="text-gray-400">· {{ r.benchmark_subset.n_tasks }} tasks</span>
-            </td>
-            <td class="px-3 py-1.5 text-right font-semibold text-gray-800 whitespace-nowrap">
-              {{ "%.3f"|format(r.results.avg_score) }}{% if r.results.std_err is defined %}<span class="text-gray-400"> ± {{ "%.3f"|format(r.results.std_err) }}</span>{% endif %}
-            </td>
-            <td class="px-3 py-1.5 whitespace-nowrap font-mono text-xs">
-              <span class="text-green-700" title="success">{{ outc.n_success }}</span><span class="text-gray-300">/</span><span class="text-red-700" title="clean failure">{{ outc.n_failure }}</span><span class="text-gray-300">/</span><span class="text-yellow-700" title="max steps">{{ outc.n_max_steps }}</span><span class="text-gray-300">/</span><span class="text-purple-700" title="system error">{{ outc.n_system_error }}</span><span class="text-gray-300">/</span><span class="text-gray-500" title="missing">{{ outc.n_missing }}</span>
-            </td>
-            <td class="px-3 py-1.5 text-right whitespace-nowrap">
-              <a href="{{ r._detail_url }}"
-                 class="text-indigo-600 hover:underline">Details →</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- Grid.js mount point + selection toolbar -->
+    <div id="results-grid-toolbar" class="mb-3 flex items-center gap-3 text-xs text-gray-500">
+      <span id="results-selected-count">No rows selected</span>
+      <button id="results-compare-btn"
+              class="hidden rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              disabled>
+        Compare selected →
+      </button>
+      <button id="results-clear-btn"
+              class="hidden text-xs text-gray-500 hover:text-gray-700 underline">
+        Clear
+      </button>
     </div>
-    <div class="mt-3 flex items-baseline justify-between text-xs text-gray-400">
-      <span>
-        <span class="text-green-700">✓</span> success ·
-        <span class="text-red-700">✗</span> failure ·
-        <span class="text-yellow-700">⏱</span> max-steps ·
-        <span class="text-purple-700">💥</span> system error ·
-        <span class="text-gray-500">–</span> missing
-      </span>
-      {% if results_count > results_data|length %}
-      <a href="{{ results_dir_url }}" class="text-indigo-600 hover:underline">
-        View all {{ results_count }} submissions on GitHub →
-      </a>
-      {% endif %}
+    <div id="results-grid"></div>
+    <p class="mt-3 text-xs text-gray-400">
+      <span class="text-green-700">✓</span> success ·
+      <span class="text-red-700">✗</span> failure ·
+      <span class="text-yellow-700">⏱</span> max-steps ·
+      <span class="text-purple-700">💥</span> system error ·
+      <span class="text-gray-500">–</span> missing
+      · sort by clicking column headers · check 2+ rows to compare side-by-side
+    </p>
+
+    <!-- Embedded result data — read by the Grid.js + compare modal scripts below. -->
+    <script id="results-data" type="application/json">{{ results_json | safe }}</script>
+
+    <!-- Compare modal (hidden by default; populated on demand). -->
+    <div id="compare-modal" class="fixed inset-0 z-50 hidden bg-gray-900/70 p-4 sm:p-8 overflow-auto">
+      <div class="mx-auto max-w-7xl rounded-xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+          <h3 class="text-base font-bold">Compare submissions</h3>
+          <button id="compare-close" class="text-2xl leading-none text-gray-500 hover:text-gray-800"
+                  aria-label="Close">&times;</button>
+        </div>
+        <div id="compare-body" class="overflow-x-auto p-5 text-xs"></div>
+      </div>
     </div>
+
+    <!-- Grid.js (CDN). Vendored CSS keeps the table Tailwind-friendly. -->
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+    <script>
+    (function () {
+      const RESULTS = JSON.parse(document.getElementById('results-data').textContent);
+      const selected = new Set();
+
+      // ── Selection helpers ──────────────────────────────────────────────
+      function toggleSelection(eid, checked) {
+        if (checked) selected.add(eid); else selected.delete(eid);
+        renderSelectionToolbar();
+      }
+      function renderSelectionToolbar() {
+        const n = selected.size;
+        document.getElementById('results-selected-count').textContent =
+          n === 0 ? 'No rows selected' :
+          n === 1 ? '1 row selected (need 2 or more to compare)' :
+                    n + ' rows selected';
+        const btn = document.getElementById('results-compare-btn');
+        const clr = document.getElementById('results-clear-btn');
+        btn.classList.toggle('hidden', n === 0);
+        clr.classList.toggle('hidden', n === 0);
+        btn.disabled = n < 2;
+      }
+      document.getElementById('results-compare-btn').addEventListener('click', openCompareModal);
+      document.getElementById('results-clear-btn').addEventListener('click', () => {
+        selected.clear();
+        document.querySelectorAll('.results-checkbox').forEach(cb => { cb.checked = false; });
+        renderSelectionToolbar();
+      });
+
+      // ── Grid.js table ──────────────────────────────────────────────────
+      // Pre-flatten rows for sorting. Numeric score/timestamp give correct sort
+      // order; HTML renderers below handle the display.
+      const rows = RESULTS.map(r => ({
+        eid: r.evaluation_id,
+        date: r._date,
+        ts: r.evaluation_timestamp,
+        agentModel: (r.agent.config_type || '') + ' / ' + (r.agent.llm_model || ''),
+        subset: r.benchmark_subset.name + ' · ' + r.benchmark_subset.n_tasks + ' tasks',
+        scoreNum: r.results.avg_score,
+        scoreDisp: r.results.avg_score.toFixed(3) +
+          (r.results.std_err != null ? ' ± ' + r.results.std_err.toFixed(3) : ''),
+        outcomes: r.results.outcomes,
+        detailUrl: r._detail_url,
+      }));
+
+      function outcomesCell(o) {
+        return gridjs.html(
+          '<span class="text-green-700" title="success">' + o.n_success + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-red-700" title="clean failure">' + o.n_failure + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-yellow-700" title="max steps">' + o.n_max_steps + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-purple-700" title="system error">' + o.n_system_error + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-gray-500" title="missing">' + o.n_missing + '</span>'
+        );
+      }
+      const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+      new gridjs.Grid({
+        columns: [
+          {
+            id: 'sel', name: '',
+            sort: false,
+            formatter: (_, row) => {
+              const eid = row.cells[1].data; // hidden eid column
+              return gridjs.html(
+                '<input type="checkbox" class="results-checkbox" data-eid="' +
+                escapeHtml(eid) + '" ' + (selected.has(eid) ? 'checked' : '') + '>'
+              );
+            },
+          },
+          { id: 'eid', name: '', hidden: true },
+          // ISO YYYY-MM-DD dates sort lexically as chronological, so the default
+          // string sort is correct here — no custom comparator needed.
+          { id: 'date', name: 'Date' },
+          { id: 'ts', name: '', hidden: true },
+          { id: 'agentModel', name: 'Agent / Model' },
+          { id: 'subset', name: 'Subset' },
+          { id: 'scoreNum', name: 'Score',
+            formatter: (n, row) => row.cells[7].data /* scoreDisp */ },
+          { id: 'scoreDisp', name: '', hidden: true },
+          { id: 'outcomes', name: 'Outcomes',
+            sort: false,
+            formatter: (o) => outcomesCell(o) },
+          { id: 'detailUrl', name: '',
+            sort: false,
+            formatter: (url) => gridjs.html(
+              '<a class="text-indigo-600 hover:underline" href="' +
+              escapeHtml(url) + '">Details →</a>') },
+        ],
+        data: rows.map(r => [
+          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.scoreNum, r.scoreDisp, r.outcomes, r.detailUrl
+        ]),
+        sort: true,
+        pagination: { limit: 20 },
+        className: { table: 'text-xs', th: 'bg-gray-50' },
+      }).render(document.getElementById('results-grid'));
+
+      // Selection wiring: delegate change events on the grid container so the
+      // handler survives Grid.js re-renders during pagination / sorting.
+      document.getElementById('results-grid').addEventListener('change', (e) => {
+        if (e.target.classList.contains('results-checkbox')) {
+          toggleSelection(e.target.dataset.eid, e.target.checked);
+        }
+      });
+
+      // ── Compare modal ──────────────────────────────────────────────────
+      function getRecord(eid) {
+        return RESULTS.find(r => r.evaluation_id === eid);
+      }
+      // Field plan: [{label, group, getter(record) -> string|null}]
+      // null/undefined values render as "—". Diff highlight is applied per row.
+      function fieldPlan() {
+        return [
+          ['Identity', [
+            ['Date',                r => r._date],
+            ['Evaluation ID',       r => r.evaluation_id],
+            ['Submitter',           r => r._submitter],
+          ]],
+          ['Benchmark', [
+            ['Subset name',         r => r.benchmark_subset.name],
+            ['Subset n_tasks',      r => String(r.benchmark_subset.n_tasks)],
+            ['Subset filter',       r => r.benchmark_subset.filter || null],
+            ['Benchmark version',   r => r.benchmark_version],
+          ]],
+          ['Agent', [
+            ['Config type',         r => r.agent.config_type],
+            ['LLM model',           r => r.agent.llm_model],
+            ['Agent ID (sha-256)',  r => r.agent.agent_id],
+            ['Framework version',   r => r.agent.framework_version],
+          ]],
+          ['Provenance', [
+            ['cube-harness commit', r => r.agent.git_commit ? r.agent.git_commit.slice(0,12) : null],
+            ['cube-harness dirty?', r => r.agent.git_is_dirty == null ? null : (r.agent.git_is_dirty ? 'yes' : 'no')],
+            ['cube-standard commit',r => r.agent.cube_standard_git_commit ? r.agent.cube_standard_git_commit.slice(0,12) : null],
+            ['cube-standard dirty?',r => r.agent.cube_standard_git_is_dirty == null ? null : (r.agent.cube_standard_git_is_dirty ? 'yes' : 'no')],
+            ['Dependency versions', r => r.agent.dependency_versions
+              ? Object.entries(r.agent.dependency_versions).map(([k,v]) => k+'='+v).join('\n')
+              : null],
+          ]],
+          ['Outcome', [
+            ['Score',               r => r.results.avg_score.toFixed(3)],
+            ['Std err',             r => r.results.std_err != null ? r.results.std_err.toFixed(3) : null],
+            ['n_success',           r => String(r.results.outcomes.n_success)],
+            ['n_failure',           r => String(r.results.outcomes.n_failure)],
+            ['n_max_steps',         r => String(r.results.outcomes.n_max_steps)],
+            ['n_system_error',      r => String(r.results.outcomes.n_system_error)],
+            ['n_missing',           r => String(r.results.outcomes.n_missing)],
+            ['Max steps cap',       r => r.results.max_steps_per_episode != null ? String(r.results.max_steps_per_episode) : null],
+            ['Avg wall time (s)',   r => r.results.avg_wall_time_s != null ? r.results.avg_wall_time_s.toFixed(1) : null],
+            ['Total cost (USD)',    r => r.results.total_cost_usd != null ? '$' + r.results.total_cost_usd.toFixed(2) : null],
+          ]],
+        ];
+      }
+      function openCompareModal() {
+        const recs = Array.from(selected).map(getRecord).filter(Boolean);
+        if (recs.length < 2) return;
+        const body = document.getElementById('compare-body');
+        body.innerHTML = renderCompareTable(recs);
+        document.getElementById('compare-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeCompareModal() {
+        document.getElementById('compare-modal').classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+      document.getElementById('compare-close').addEventListener('click', closeCompareModal);
+      document.getElementById('compare-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'compare-modal') closeCompareModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeCompareModal();
+      });
+
+      function renderCompareTable(recs) {
+        const plan = fieldPlan();
+        const cols = recs.length;
+        let html = '<table class="w-full border-collapse"><thead><tr>' +
+          '<th class="sticky left-0 bg-gray-50 px-3 py-2 text-left font-semibold border border-gray-200" style="min-width:14rem">Field</th>';
+        for (const r of recs) {
+          html += '<th class="px-3 py-2 text-left font-semibold border border-gray-200 bg-gray-50" style="min-width:18rem">' +
+            '<div class="font-mono text-gray-700">' + escapeHtml(r.agent.config_type || '') + ' / ' + escapeHtml(r.agent.llm_model || '') + '</div>' +
+            '<div class="text-gray-500 font-normal mt-0.5">' + escapeHtml(r._date) + ' · score ' + r.results.avg_score.toFixed(3) + '</div>' +
+            '<div class="mt-1"><a class="text-indigo-600 hover:underline" href="' + escapeHtml(r._detail_url) + '">Raw JSON →</a></div>' +
+            '</th>';
+        }
+        html += '</tr></thead><tbody>';
+        for (const [groupName, fields] of plan) {
+          html += '<tr><td colspan="' + (cols + 1) + '" class="bg-indigo-50 px-3 py-1.5 font-semibold text-indigo-900 text-[11px] uppercase tracking-wider border border-indigo-100">' + escapeHtml(groupName) + '</td></tr>';
+          for (const [label, getter] of fields) {
+            const values = recs.map(r => { try { return getter(r); } catch (e) { return null; } });
+            const allEqual = values.every(v => v === values[0]);
+            const labelCell = '<td class="sticky left-0 bg-white px-3 py-1.5 text-gray-500 border border-gray-100" style="min-width:14rem">' + escapeHtml(label) + '</td>';
+            html += '<tr>' + labelCell;
+            for (const v of values) {
+              const diffBg = allEqual ? '' : 'bg-amber-50';
+              const cellContent = v == null ? '<span class="text-gray-400">—</span>' :
+                (v.includes && v.includes('\n')
+                  ? '<details class="cursor-pointer"><summary class="text-gray-700">' +
+                    escapeHtml(v.split('\n').length + ' items') +
+                    '</summary><pre class="mt-1 whitespace-pre-wrap text-[11px] text-gray-700">' +
+                    escapeHtml(v) + '</pre></details>'
+                  : '<span class="font-mono text-gray-800">' + escapeHtml(v) + '</span>');
+              html += '<td class="px-3 py-1.5 border border-gray-100 align-top ' + diffBg + '">' + cellContent + '</td>';
+            }
+            html += '</tr>';
+          }
+        }
+        html += '</tbody></table>';
+        html += '<p class="mt-3 text-[11px] text-gray-400">Cells with <span class="bg-amber-50 px-1">amber background</span> differ between selected submissions.</p>';
+        return html;
+      }
+    })();
+    </script>
+
     {% else %}
     <p class="text-sm text-gray-400 text-center py-6">
-      No community results submitted yet. Be the first — see <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/README.md#submitting-a-result" class="text-indigo-600 hover:underline">how to submit</a>.
+      No submissions yet. Be the first — see <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/README.md#submitting-a-result" class="text-indigo-600 hover:underline">how to submit</a>.
     </p>
     {% endif %}
   </section>

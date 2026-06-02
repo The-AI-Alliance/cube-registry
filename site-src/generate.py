@@ -135,11 +135,6 @@ def enrich_entry(entry: dict[str, Any]) -> dict[str, Any]:
     return e
 
 
-# Limit how many rows we render in the per-cube Results table. Older
-# submissions stay accessible via the "View all on GitHub" link rendered when
-# this cap is exceeded.
-RESULTS_PAGE_LIMIT = 10
-
 _GITHUB_RAW_BLOB = "https://github.com/The-AI-Alliance/cube-registry/blob/main"
 _GITHUB_TREE = "https://github.com/The-AI-Alliance/cube-registry/tree/main"
 
@@ -285,9 +280,10 @@ def generate(dry_run: bool = False) -> None:
         bench_html = bench_tmpl.render(
             entry=entry,
             stress_data=stress_data,
-            results_data=all_results[:RESULTS_PAGE_LIMIT],
+            results_data=all_results,
             results_count=len(all_results),
             results_dir_url=results_dir_url(benchmark_id),
+            results_json=json.dumps(all_results, separators=(",", ":")),
             generated_at=generated_at,
         )
 
