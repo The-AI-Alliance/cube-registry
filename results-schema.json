@@ -46,11 +46,13 @@
         "name": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 128,
           "description": "Library name (e.g. cube-harness, inspect_ai, lm_eval, helm)."
         },
         "version": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 64,
           "description": "Library version string."
         }
       }
@@ -69,27 +71,32 @@
         "config_type": {
           "type": "string",
           "description": "Agent config class name (e.g. ReActConfig, GennyConfig).",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128
         },
         "llm_model": {
           "type": "string",
           "description": "LLM identifier in LiteLLM/provider-prefixed form (e.g. azure/gpt-5.4-mini, anthropic/claude-opus-4-7).",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 256
         },
         "framework_version": {
           "type": "string",
           "description": "Version of the eval library at the time of the run (typically matches eval_library.version).",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64
         },
         "dependency_versions": {
           "type": "object",
           "description": "Installed versions of every distribution imported into the experiment's process at run time, minus a curated denylist of behaviorally-inert plumbing.",
-          "additionalProperties": {"type": "string"}
+          "maxProperties": 500,
+          "additionalProperties": {"type": "string", "maxLength": 128}
         },
         "primary_dependencies": {
           "type": "array",
           "description": "Subset of dependency_versions whose drift most directly affects scores (LLM gateway + provider SDKs, tokenizers, env runtimes, schema validation). UIs render these prominently; the rest stay in dependency_versions.",
-          "items": {"type": "string"},
+          "items": {"type": "string", "maxLength": 128},
+          "maxItems": 50,
           "uniqueItems": true
         },
         "git_commit": {
@@ -126,7 +133,8 @@
     "benchmark_version": {
       "type": "string",
       "description": "Version of the benchmark package the result was produced against.",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 64
     },
     "benchmark_subset": {
       "type": "object",
@@ -137,7 +145,8 @@
         "name": {
           "type": "string",
           "description": "Display label for the subset (e.g. 'miniwob[level=all]', 'workarena.l1', 'swebench-verified[split=test]').",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 256
         },
         "n_tasks": {
           "type": "integer",
@@ -146,13 +155,15 @@
         },
         "filter": {
           "type": "string",
-          "description": "Optional: derivation expression (filter string, glob, or named split) used to produce the subset from the full benchmark."
+          "description": "Optional: derivation expression (filter string, glob, or named split) used to produce the subset from the full benchmark.",
+          "maxLength": 1024
         },
         "task_ids": {
           "type": "array",
           "description": "Optional: explicit task-id list. Use when neither name nor filter uniquely pins the subset; omit when long.",
-          "items": {"type": "string"},
-          "minItems": 1
+          "items": {"type": "string", "maxLength": 256},
+          "minItems": 1,
+          "maxItems": 1000
         }
       }
     },

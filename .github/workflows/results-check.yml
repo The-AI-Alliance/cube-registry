@@ -12,68 +12,101 @@ jobs:
   # ── Path-isolation gate ────────────────────────────────────────────────
   # Determines whether this PR is eligible for results auto-merge.
   # Eligible only if the diff strictly adds files under results/<cube-id>/*.json
-  # and modifies/deletes nothing.
+  # — every other shape (modify, delete, mixed with non-results) is rejected
+  # or falls back to standard human review.
   classify:
     name: classify
     runs-on: ubuntu-latest
     outputs:
-      added_results:           ${{ steps.added.outputs.all_changed_files }}
-      added_results_any:       ${{ steps.added.outputs.any_changed }}
-      modified_results:        ${{ steps.modified.outputs.all_changed_files }}
-      modified_results_any:    ${{ steps.modified.outputs.any_changed }}
-      non_results_any:         ${{ steps.non_results.outputs.any_changed }}
+      added_results:                ${{ steps.added.outputs.results_all_changed_files }}
+      added_results_any:            ${{ steps.added.outputs.results_any_changed }}
+      modified_or_deleted_any:      ${{ steps.modified_or_deleted.outputs.has_any }}
+      non_results_any:              ${{ steps.non_results.outputs.results_any_changed != 'true' && steps.all.outputs.any_changed == 'true' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4.2.2
+        with:
+          fetch-depth: 0
 
+      # Added results files only. Use the namespaced files_yaml outputs so the
+      # group key ("results") is unambiguous; mixing with the bare-form inputs
+      # produced version-dependent behavior (W4).
       - name: Added result files
         id: added
         uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323  # v47.0.5
         with:
-          files: "results/*/*.json"
-          files_ignore: "results/*/_*.json"
           separator: " "
           files_yaml: |
             results:
               - results/*/*.json
               - '!results/*/_*.json'
 
-      - name: Modified or deleted result files (rejection signal)
-        id: modified
-        uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323  # v47.0.5
-        with:
-          files: "results/**"
-          separator: " "
+      # Modified, deleted, renamed, or copied files anywhere under results/.
+      # Computed via `git diff --diff-filter=MDRC` so the signal cannot be
+      # masked by an additive file in the same PR (W2). The journal is
+      # append-only; any non-add inside results/ is grounds for rejection.
+      - name: Modified-or-deleted files inside results/
+        id: modified_or_deleted
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --diff-filter=MDRC --name-only "$BASE_SHA" "$HEAD_SHA" -- 'results/*' || true)
+          if [ -n "$changed" ]; then
+            echo "has_any=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "has_any=false" >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo "files<<__EOF__"
+            printf '%s\n' "$changed"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Files changed outside results/
+      # Was anything outside results/ touched? Combined with `all` we know
+      # whether this is a results-only PR (auto-merge eligible) or a mixed PR.
+      - name: Any non-results changes
         id: non_results
         uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323  # v47.0.5
         with:
-          files_ignore: "results/**"
+          separator: " "
+          files_yaml: |
+            results:
+              - 'results/**'
+
+      - name: All changed files (sentinel)
+        id: all
+        uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323  # v47.0.5
+        with:
           separator: " "
 
-  # ── Reject modify/delete inside results/ ───────────────────────────────
-  # The journal is append-only. A PR that modifies or deletes anything in
-  # results/ is rejected outright (no auto-merge, comment posted).
+  # ── Reject any modify / delete / rename inside results/ ────────────────
+  # The journal is append-only. Fires whenever the diff includes a non-add
+  # inside results/, regardless of whether the PR also adds new files. This
+  # closes the add+modify bypass W2 reviewers identified.
   reject-modify:
     name: reject-modify
     needs: classify
-    if: needs.classify.outputs.added_results_any == 'false' && needs.classify.outputs.modified_results_any == 'true'
+    if: needs.classify.outputs.modified_or_deleted_any == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Post rejection comment
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER:    ${{ github.event.pull_request.number }}
+          REPO_FULL:    ${{ github.repository }}
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
-            --body "❌ This PR modifies or deletes files in \`results/\`. The journal is append-only — corrections are made by submitting a new record with a \`supersedes\` reference."
+          gh pr comment "$PR_NUMBER" --repo "$REPO_FULL" \
+            --body "❌ This PR modifies, deletes, or renames files in \`results/\`. The journal is append-only — corrections are made by submitting a new record with a \`supersedes\` reference."
           exit 1
 
   # ── Validate added result files ────────────────────────────────────────
   validate:
     name: validate
     needs: classify
-    if: needs.classify.outputs.added_results_any == 'true'
+    # Run only when (a) there is at least one added results file, AND (b)
+    # no modify/delete signal — so the script never sees a PR that already
+    # failed the append-only gate.
+    if: needs.classify.outputs.added_results_any == 'true' && needs.classify.outputs.modified_or_deleted_any == 'false'
     runs-on: ubuntu-latest
     outputs:
       passed: ${{ steps.run.outputs.passed }}
@@ -87,13 +120,23 @@ jobs:
       - name: Install dependencies
         run: pip install jsonschema 'ruamel.yaml' pyyaml
 
+      # SECURITY: PR-author-controlled file paths (W1). We MUST NOT splice
+      # `needs.classify.outputs.added_results` directly into the shell — GHA
+      # ${{ }} substitution happens at YAML-render time, before the shell
+      # runs, so embedded $(…)/backticks/etc. would execute. Route the value
+      # through the env, where the shell only ever sees its literal text.
       - name: Run validator
         id: run
+        env:
+          ADDED_FILES: ${{ needs.classify.outputs.added_results }}
         run: |
           set +e
-          python scripts/results_check.py \
-            --added ${{ needs.classify.outputs.added_results }} \
-            --summary-out /tmp/results-summary.md
+          # Word-split on whitespace into separate --added arguments. xargs is
+          # safer than shell glob expansion because it leaves $() / backticks
+          # / globs as literal path components — the validator rejects bad
+          # filenames via its own regex.
+          printf '%s\n' $ADDED_FILES \
+            | xargs python scripts/results_check.py --summary-out /tmp/results-summary.md --added
           rc=$?
           if [ "$rc" -eq 0 ]; then
             echo "passed=true" >> "$GITHUB_OUTPUT"
@@ -105,39 +148,43 @@ jobs:
       - name: Post validation summary
         if: always()
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL: ${{ github.repository }}
         run: |
           if [ -f /tmp/results-summary.md ]; then
-            gh pr comment "${{ github.event.pull_request.number }}" \
-              --repo "${{ github.repository }}" \
+            gh pr comment "$PR_NUMBER" --repo "$REPO_FULL" \
               --body-file /tmp/results-summary.md
           fi
 
   # ── Auto-merge eligibility ─────────────────────────────────────────────
-  # The PR auto-merges iff:
-  #   - At least one results file was added
-  #   - No results files were modified or deleted (modify path is rejection-only)
-  #   - Nothing outside results/ was touched
-  #   - The validator passed every added file
+  # The PR auto-merges iff (1) at least one results file added, (2) no
+  # modify/delete inside results/, (3) nothing outside results/ touched,
+  # (4) every added file validates.
+  #
+  # Fork PRs: GITHUB_TOKEN is read-only on `pull_request` from a fork in
+  # public repos, so `gh pr merge --auto` will no-op. That's documented in
+  # README + the openspec design — community contributors who want
+  # auto-merge submit from a branch of this repo. Fork PRs fall through to
+  # standard human review (a maintainer can complete the merge by hand).
   auto-merge:
     name: auto-merge
     needs: [classify, validate]
     if: |
       needs.classify.outputs.added_results_any == 'true' &&
+      needs.classify.outputs.modified_or_deleted_any == 'false' &&
       needs.classify.outputs.non_results_any == 'false' &&
       needs.validate.outputs.passed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Apply auto-merge label
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL: ${{ github.repository }}
         run: |
-          gh pr edit "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
-            --add-label "auto-merge"
-          gh pr merge "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
-            --auto --squash
+          gh pr edit "$PR_NUMBER" --repo "$REPO_FULL" --add-label "auto-merge"
+          gh pr merge "$PR_NUMBER" --repo "$REPO_FULL" --auto --squash
 
   # ── Mixed PR: validator passes, but other files were touched ──────────
   # The result files are valid, but the PR also changes non-results paths.
@@ -147,14 +194,16 @@ jobs:
     needs: [classify, validate]
     if: |
       needs.classify.outputs.added_results_any == 'true' &&
+      needs.classify.outputs.modified_or_deleted_any == 'false' &&
       needs.classify.outputs.non_results_any == 'true' &&
       needs.validate.outputs.passed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Comment on mixed PR
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL: ${{ github.repository }}
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
+          gh pr comment "$PR_NUMBER" --repo "$REPO_FULL" \
             --body "ℹ️ The added results files pass validation, but this PR also touches paths outside \`results/\`. Auto-merge is disabled — a maintainer will review."

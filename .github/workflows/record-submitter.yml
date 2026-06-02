@@ -27,9 +27,13 @@ jobs:
       - name: Find newly added result files
         id: added
         run: |
-          # Only newly added (A) JSON files under results/<cube>/. Skip _bookkeeping.json.
+          # Only newly added (A) JSON files under results/<cube>/. Skip the
+          # bot-only _submissions.json bookkeeping file. The regex matches
+          # paths like "results/<cube>/_anything.json" — the leading '/' in
+          # the old form was a bug (W5) that made the filter a no-op.
           ADDED=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'results/*/*.json' \
-                    | grep -v '/results/[^/]*/_' | tr '\n' ' ')
+                    | grep -v '^results/[^/]*/_' || true)
+          ADDED=$(printf '%s' "$ADDED" | tr '\n' ' ')
           echo "files=$ADDED" >> "$GITHUB_OUTPUT"
           echo "Added: $ADDED"
 
@@ -66,6 +70,13 @@ jobs:
           git config user.name  "cube-registry-bot"
           git config user.email "cube-registry-bot@users.noreply.github.com"
           git add 'results/*/_submissions.json'
-          git diff --cached --quiet && echo "_submissions.json unchanged" || \
-            git commit -s -m "ci: record submitter [skip ci]"
+          if git diff --cached --quiet; then
+            echo "_submissions.json unchanged"
+            exit 0
+          fi
+          git commit -s -m "ci: record submitter [skip ci]"
+          # Race window: two concurrent record-submitter runs could both rebase
+          # off the same main HEAD. Rebase onto remote main before push so the
+          # second run gracefully picks up the first's commit (S3b).
+          git pull --rebase origin main
           git push

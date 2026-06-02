@@ -139,6 +139,25 @@ _GITHUB_RAW_BLOB = "https://github.com/The-AI-Alliance/cube-registry/blob/main"
 _GITHUB_TREE = "https://github.com/The-AI-Alliance/cube-registry/tree/main"
 
 
+def _json_for_html_script(data: Any) -> str:
+    """Serialize *data* as JSON that's safe to drop inside ``<script>``.
+
+    `json.dumps` does not escape ``<`` / ``>`` / ``&``, so a value like
+    ``"</script><script>alert(1)</script>"`` would otherwise break out of
+    the surrounding script element. Since community-submitted records land
+    auto-merged on the live site, every free-text field is potentially
+    attacker-controlled. Replace the dangerous bytes with their `\\uXXXX`
+    JSON Unicode escapes — JSON.parse decodes them back on the browser side,
+    but the HTML tokenizer never sees the raw markers.
+    """
+    return (
+        json.dumps(data, separators=(",", ":"))
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+
+
 def load_results(entry: dict) -> list[dict[str, Any]]:
     """Load community-submitted results for *entry*, newest first.
 
@@ -170,7 +189,10 @@ def load_results(entry: dict) -> list[dict[str, Any]]:
             continue
         try:
             record = json.loads(result_path.read_text())
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            # The PR-time validator should make this unreachable; warn loudly
+            # so a corrupt file on main is visible at site-gen time (S8).
+            print(f"Warning: failed to parse {result_path}: {e}")
             continue
         eid = record.get("evaluation_id", "")
         sub_meta = submissions.get(eid, {})
@@ -283,7 +305,7 @@ def generate(dry_run: bool = False) -> None:
             results_data=all_results,
             results_count=len(all_results),
             results_dir_url=results_dir_url(benchmark_id),
-            results_json=json.dumps(all_results, separators=(",", ":")),
+            results_json=_json_for_html_script(all_results),
             generated_at=generated_at,
         )
 

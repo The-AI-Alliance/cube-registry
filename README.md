@@ -142,6 +142,14 @@ Or manually:
    outcome consistency. If everything passes and the PR strictly adds files
    under `results/`, the PR **auto-merges**.
 
+> ⚠ **Fork PRs auto-merge only when push permissions exist.** GitHub's
+> default `GITHUB_TOKEN` is read-only for `pull_request` workflows triggered
+> from a fork, so the `gh pr merge --auto` step is a no-op there. Validation
+> still runs and posts a green summary — a maintainer will need to complete
+> the merge by hand. To get true auto-merge, submit from a branch of this
+> repo (`cube registry add` and the cube-harness submitter both support
+> this) or wait for the maintainer review.
+
 The journal is **append-only**. Corrections are made by submitting a new
 record with a `supersedes` field referencing the prior `evaluation_id`.
 

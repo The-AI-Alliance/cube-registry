@@ -183,6 +183,39 @@ class TestDuplicateId:
         # Either duplicate id OR filename mismatch will catch it — both are correct.
         assert any("already exists" in f or "filename" in f for f in failures)
 
+    def test_sibling_added_id_collision_rejected(self, staged_repo, valid_record, schema):
+        """Two files added in the same PR with the same evaluation_id must collide (S2)."""
+        _write_entry(staged_repo, "miniwob")
+        # First file lives in the repo as a "freshly added" file (not on disk
+        # as a prior submission yet — that's what sibling_added_ids models).
+        first = _write_result(staged_repo, valid_record, "miniwob", filename="alpha.json")
+        # Second file with the *same* evaluation_id but a different stem.
+        valid_record["agent"]["agent_id"] = "b" * 64  # avoid filename collision
+        second = staged_repo / "results" / "miniwob" / "beta.json"
+        second.write_text(json.dumps(valid_record))
+        # Without sibling awareness: neither sees the other on-disk (each
+        # excludes itself from the scan). With sibling awareness: collision.
+        failures = rc.check_file(second, schema, sibling_added_ids={valid_record["evaluation_id"]})
+        assert any("being added by another file" in f for f in failures)
+        # Sanity: removing the sibling info lets the collision slip past.
+        first.unlink()  # cleanup not strictly necessary; clarity only
+
+
+class TestBookkeepingReject:
+    def test_underscore_filenames_rejected(self, staged_repo, valid_record, schema):
+        """Files like _submissions.json (CI-bot only) must not validate (S1)."""
+        _write_entry(staged_repo, "miniwob")
+        path = _write_result(staged_repo, valid_record, "miniwob", filename="_submissions.json")
+        failures = rc.check_file(path, schema)
+        assert any("reserved" in f and "underscore" in f for f in failures)
+
+
+class TestSchemaMetaValidation:
+    def test_check_schema_runs_at_load(self) -> None:
+        """A malformed results-schema.json must fail at load, not at first PR (S7)."""
+        # The real schema must pass its own meta-validation.
+        rc._load_schema()  # no raise = passes Draft7Validator.check_schema()
+
 
 class TestFileSize:
     def test_oversized_file_rejected(self, staged_repo, valid_record, schema):

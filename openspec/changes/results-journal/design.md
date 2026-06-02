@@ -142,7 +142,9 @@ on, formatted as a checklist.
 ## Merge-time bookkeeping
 
 `results-check.yml` runs on `pull_request`. A separate `record-submitter.yml`
-runs on `pull_request_target` (post-merge, write permissions) and appends one
+runs on `push` to `main` with path filter `results/*/*.json` (post-merge,
+write permissions via the existing path-restricted bypass that already
+governs `OWNERS.yaml`/`stress-results/`). It appends one
 row to `results/<cube-id>/_submissions.json` mapping `evaluation_id → PR author
 GitHub handle + merge timestamp`. The `_submissions.json` file is the
 authoritative source for the `Submitter` column in the site table.

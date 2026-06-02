@@ -48,7 +48,11 @@ class CheckError(Exception):
 
 def _load_schema() -> dict:
     with SCHEMA_PATH.open() as f:
-        return json.load(f)
+        schema = json.load(f)
+    # Cheap meta-validation: catches typos in results-schema.json at CI start
+    # instead of letting every PR runner re-discover the breakage (S7).
+    jsonschema.Draft7Validator.check_schema(schema)
+    return schema
 
 
 def _load_yaml(path: Path) -> dict:
@@ -63,6 +67,14 @@ def _file_to_cube_id(file_path: Path) -> str:
         raise CheckError(f"file is not under results/: {file_path}") from e
     if len(relative.parts) != 2 or not relative.name.endswith(".json"):
         raise CheckError(f"expected results/<cube-id>/<file>.json, got results/{relative}")
+    # Bot-only bookkeeping files (e.g. _submissions.json) MUST NOT come in via
+    # community PRs. The workflow filters them at the changed-files step; this
+    # is the script-side defense in depth (S1).
+    if relative.name.startswith("_"):
+        raise CheckError(
+            f"filename '{relative.name}' is reserved for CI-bot bookkeeping; "
+            "community submissions cannot use a leading underscore"
+        )
     cube_id = relative.parts[0]
     if not _CUBE_ID_RE.match(cube_id):
         raise CheckError(f"cube-id segment '{cube_id}' is not a valid slug")
@@ -133,8 +145,20 @@ def _validate_against_schema(record: dict, schema: dict) -> list[str]:
     return [f"schema: {'.'.join(str(p) for p in e.path) or '<root>'}: {e.message}" for e in errors]
 
 
-def check_file(file_path: Path, schema: dict) -> list[str]:
-    """Run every check on one added file. Returns the list of failure messages."""
+def check_file(
+    file_path: Path,
+    schema: dict,
+    *,
+    sibling_added_ids: set[str] | None = None,
+) -> list[str]:
+    """Run every check on one added file. Returns the list of failure messages.
+
+    *sibling_added_ids* (S2) is the set of ``evaluation_id`` values *also*
+    being added in the same PR batch (excluding *file_path* itself). The
+    uniqueness check unions this with the on-disk set so two files in the
+    same PR can't both pass with identical IDs — the on-disk view is the
+    same for each when neither is merged yet.
+    """
     failures: list[str] = []
 
     if file_path.stat().st_size > MAX_FILE_SIZE_BYTES:
@@ -218,10 +242,22 @@ def check_file(file_path: Path, schema: dict) -> list[str]:
         )
 
     # ── evaluation_id is globally unique within results/<cube>/ ─────────────
+    # Two independent checks (S2) — both fire even when they overlap, because
+    # they cover different invocation contexts:
+    #   - on-disk: the validator runs on a CI checkout that already has every
+    #     added file, so a dup between batch siblings IS visible here.
+    #   - sibling-batch: defense in depth for local invocations where the
+    #     argv list is the only source of truth (the batch is in flight, not
+    #     all files necessarily on disk yet).
     if record["evaluation_id"] in _existing_evaluation_ids(cube_id, file_path):
         failures.append(
             f"evaluation_id '{record['evaluation_id']}' already exists in "
             f"results/{cube_id}/ — use 'supersedes' with a new id to correct a prior submission"
+        )
+    if record["evaluation_id"] in (sibling_added_ids or set()):
+        failures.append(
+            f"evaluation_id '{record['evaluation_id']}' is being added by another file "
+            "in this same PR — each submission needs a unique id"
         )
 
     return failures
@@ -269,10 +305,19 @@ def main() -> int:
         return 0
 
     schema = _load_schema()
+    # Pre-collect every evaluation_id this PR is attempting to add so any
+    # check_file invocation can see the rest of its own batch (S2).
+    added_paths = [Path(p) for p in args.added]
+    batch_ids: dict[Path, str] = {}
+    for path in added_paths:
+        try:
+            batch_ids[path] = json.loads(path.read_text()).get("evaluation_id")
+        except Exception:
+            batch_ids[path] = None
     per_file: dict[Path, list[str]] = {}
-    for path_str in args.added:
-        path = Path(path_str)
-        per_file[path] = check_file(path, schema)
+    for path in added_paths:
+        siblings = {eid for p, eid in batch_ids.items() if p != path and isinstance(eid, str)}
+        per_file[path] = check_file(path, schema, sibling_added_ids=siblings)
 
     summary = _format_summary(per_file)
     print(summary)
