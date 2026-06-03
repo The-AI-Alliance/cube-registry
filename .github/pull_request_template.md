@@ -1,7 +1,8 @@
 ## CUBE Registry Submission
 
 Thank you for submitting a benchmark to the CUBE Registry!
-CI will validate your entry automatically — no human review needed in the happy path.
+CI will validate your entry automatically. On all checks green, the PR is labeled
+`ready-for-review` and a maintainer merges (typically within a business day).
 
 ---
 
@@ -25,7 +26,8 @@ CI will validate your entry automatically — no human review needed in the happ
 | PyPI install + API introspection | On PR | ~2 min |
 | Full debug episode on real infra | Post-merge (async) | ~5-15 min |
 
-Auto-merge triggers when `ownership-check` and `quick-compliance` both pass.
+When `ownership-check` and `quick-compliance` both pass, the PR is labeled
+`ready-for-review` and a maintainer completes the merge.
 
 The slow check runs asynchronously after merge. A failure will open a GitHub issue tagging
 your GitHub handle from `authors[].github`.

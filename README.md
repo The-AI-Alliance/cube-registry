@@ -51,7 +51,11 @@ This generates the entry YAML from your `pyproject.toml`, forks this repo, commi
 2. Create `entries/<your-benchmark-id>.yaml` (see template below)
 3. Open a pull request
 
-Either way, CI validates the entry and auto-merges if it passes. No human review needed.
+Either way, CI validates the entry. On all checks green, the PR is labeled
+`ready-for-review` and a maintainer one-clicks merge — typically within a
+business day. Auto-merge for entries is on the roadmap; see
+[openspec/changes/entry-auto-merge/](openspec/changes/entry-auto-merge/proposal.md)
+for the design.
 
 ### Entry template
 
@@ -90,7 +94,8 @@ Fields populated automatically by CI (do not fill):
 ### Updating your entry
 
 Open a PR modifying your existing YAML. CI verifies you are a registered author
-(via `OWNERS.yaml`) and auto-merges if checks pass.
+(via `OWNERS.yaml`). On checks green, the PR is labeled `ready-for-review` for
+a maintainer to merge.
 
 ---
 
