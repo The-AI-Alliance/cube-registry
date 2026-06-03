@@ -451,9 +451,6 @@
         ts: r.evaluation_timestamp,
         agentModel: (r.agent.config_type || '') + ' / ' + (r.agent.llm_model || ''),
         subset: r.benchmark_subset,
-        // Plain-text version powers Grid.js's sort comparator — without it,
-        // sorting on the Subset column tries to compare objects.
-        subsetSortKey: (r.benchmark_subset && r.benchmark_subset.name) || '',
         scoreNum: r.results.avg_score,
         scoreDisp: r.results.avg_score.toFixed(3) +
           (r.results.std_err != null ? ' ± ' + r.results.std_err.toFixed(3) : ''),
@@ -497,19 +494,17 @@
           { id: 'ts', name: '', hidden: true },
           { id: 'agentModel', name: 'Agent / Model' },
           // Subset cell renders the BenchmarkSubset object as a 2-line
-          // name + filter/custom layout. Sort uses the parallel subsetSortKey
-          // column so Grid.js compares plain strings, not objects.
+          // name + filter/custom layout. The custom comparator unwraps
+          // .name from the object so Grid.js can sort lexicographically.
           { id: 'subset', name: 'Subset',
             sort: { compare: (a, b) => {
-              // a/b are the BenchmarkSubset objects; use name for sort.
               const ka = (a && a.name) || '';
               const kb = (b && b.name) || '';
               return ka.localeCompare(kb);
             }},
             formatter: (s) => subsetCell(s) },
-          { id: 'subsetSortKey', name: '', hidden: true },
           { id: 'scoreNum', name: 'Score',
-            formatter: (n, row) => row.cells[8].data /* scoreDisp */ },
+            formatter: (n, row) => row.cells[7].data /* scoreDisp */ },
           { id: 'scoreDisp', name: '', hidden: true },
           { id: 'outcomes', name: 'Outcomes',
             sort: false,
@@ -525,7 +520,7 @@
               escapeHtml(eid) + '">Details →</button>') },
         ],
         data: rows.map(r => [
-          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.subsetSortKey, r.scoreNum, r.scoreDisp, r.outcomes, r.eid
+          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.scoreNum, r.scoreDisp, r.outcomes, r.eid
         ]),
         sort: true,
         pagination: { limit: 20 },
@@ -564,6 +559,15 @@
             ['Subset name',         r => r.benchmark_subset.name],
             ['Subset n_tasks',      r => String(r.benchmark_subset.n_tasks)],
             ['Subset filter',       r => r.benchmark_subset.filter || null],
+            // Explicit task_ids — surfaced so a reader knows which tasks were
+            // hand-picked. Long lists are truncated to avoid blowing the cell;
+            // the raw JSON link in the column header has the complete set.
+            ['Subset task_ids',     r => {
+              const ids = r.benchmark_subset.task_ids;
+              if (!ids || !ids.length) return null;
+              if (ids.length <= 5) return ids.join('\n');
+              return ids.slice(0, 5).join('\n') + '\n…and ' + (ids.length - 5) + ' more';
+            }],
             ['Benchmark version',   r => r.benchmark_version],
           ]],
           ['Agent', [

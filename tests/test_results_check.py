@@ -210,6 +210,26 @@ class TestBookkeepingReject:
         assert any("reserved" in f and "underscore" in f for f in failures)
 
 
+class TestPrimaryDependenciesSubset:
+    def test_orphan_in_primary_rejected(self, staged_repo, valid_record, schema):
+        """primary_dependencies must be a subset of dependency_versions keys."""
+        _write_entry(staged_repo, "miniwob")
+        valid_record["agent"]["dependency_versions"] = {"litellm": "1.55.0"}
+        valid_record["agent"]["primary_dependencies"] = ["litellm", "onnxruntime"]
+        path = _write_result(staged_repo, valid_record, "miniwob")
+        failures = rc.check_file(path, schema)
+        assert any("primary_dependencies" in f and "onnxruntime" in f for f in failures)
+
+    def test_complete_subset_passes(self, staged_repo, valid_record, schema):
+        _write_entry(staged_repo, "miniwob")
+        valid_record["agent"]["dependency_versions"] = {"litellm": "1.55.0", "openai": "1.50.0"}
+        valid_record["agent"]["primary_dependencies"] = ["litellm"]
+        path = _write_result(staged_repo, valid_record, "miniwob")
+        # No primary-vs-deps failures.
+        failures = rc.check_file(path, schema)
+        assert not any("primary_dependencies" in f for f in failures)
+
+
 class TestSchemaMetaValidation:
     def test_check_schema_runs_at_load(self) -> None:
         """A malformed results-schema.json must fail at load, not at first PR (S7)."""

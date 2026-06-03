@@ -76,7 +76,11 @@ needed — the cube-harness submitter calls `model_dump` and reshapes ~12 fields
 
 ---
 
-## Sample valid record
+## Sample record (hashes truncated for readability)
+
+> A real submission has 64-hex `agent_id`, 40-hex `git_commit`s, and full
+> dependency-version lists. The ellipses below would fail the JSON-schema
+> patterns — they're shown short purely so a reviewer can scan the shape.
 
 ```json
 {
@@ -158,19 +162,27 @@ request-human-review:        if added_results_any and not modified_or_deleted_an
 
 ```python
 # scripts/results_check.py — per-file check_file(path, schema, sibling_added_ids)
-1. file size ≤ 50 KB
-2. _file_to_cube_id(path)             # cube-id segment validates against ^[a-z0-9](-[a-z0-9]+)*$,
-                                      # filename does NOT start with '_'
-3. json.loads(path)                   # invalid JSON => fail
-4. Draft7Validator(schema).validate   # schema itself meta-validated at load
-5. cross-ref entries/<cube>.yaml      # cube must be registered
-6. benchmark_name == cube-id
-7. benchmark_version ∈ {entry.version, …prior versions in results/<cube>/}
-8. benchmark_subset.n_tasks ≤ entry.task_count
-9. outcomes sum == n_tasks            # mutually exclusive + exhaustive
-10. filename stem == sanitize(evaluation_id)
-11. evaluation_id ∉ on_disk_ids AND evaluation_id ∉ sibling_added_ids
-                                      # independent checks — both fire when overlapping
+# Numbering matches deltas.md so reviewers can cross-reference. Some deltas
+# entries are co-located here ("path-shape + underscore reject" both land in
+# _file_to_cube_id; "sibling-batch dedup" + on-disk dedup both fire from the
+# evaluation_id uniqueness block).
+1.  file size ≤ 50 KB
+2.  _file_to_cube_id(path)             # cube-id segment ^[a-z0-9](-[a-z0-9]+)*$,
+                                       # filename does NOT start with '_' (delta #12)
+3.  json.loads(path)                   # invalid JSON => fail
+4.  Draft7Validator(schema).validate   # schema meta-validated at load (delta #1)
+5.  cross-ref entries/<cube>.yaml      # cube must be registered (delta #2)
+6.  benchmark_name == cube-id          # (delta #3)
+7.  benchmark_version ∈ known set      # entry.version + prior file versions (delta #4)
+8.  benchmark_subset.n_tasks ≤ entry.task_count                          # (delta #5)
+9.  outcomes sum == n_tasks            # mutually exclusive + exhaustive  (delta #6)
+10. primary_dependencies ⊆ dependency_versions                            # (delta #9)
+11. filename stem == sanitize(evaluation_id)                              # (delta #12)
+12. evaluation_id ∉ on_disk_ids AND ∉ sibling_added_ids                  # (delta #11)
+                                       # both signals fire independently when overlapping
+# (avg_score bounds, git_commit shape, and the maxLength caps are
+# delta #7/#8 + the per-field schema caps — enforced by the JSON Schema
+# validator above, not by additional Python.)
 ```
 
 Failure messages are surfaced as a single PR comment for the submitter to act

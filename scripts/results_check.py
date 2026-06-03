@@ -233,6 +233,22 @@ def check_file(
             f"the five counts must be mutually exclusive and exhaustive"
         )
 
+    # ── primary_dependencies ⊆ dependency_versions ──────────────────────────
+    # The schema describes primary_dependencies as "Subset of
+    # dependency_versions" but doesn't structurally enforce it. Without this
+    # check, a submitter listing ["onnxruntime"] while dependency_versions
+    # only knows {"torch": ...} would silently produce a bogus primary tier
+    # in the UI (every column would render "— missing" for the orphaned name).
+    primary = record.get("agent", {}).get("primary_dependencies") or []
+    dep_versions = record.get("agent", {}).get("dependency_versions") or {}
+    orphans = [p for p in primary if p not in dep_versions]
+    if orphans:
+        failures.append(
+            f"agent.primary_dependencies contains {len(orphans)} entries not "
+            f"present in agent.dependency_versions: {sorted(orphans)[:5]}"
+            + ("…" if len(orphans) > 5 else "")
+        )
+
     # ── filename matches the sanitized evaluation_id ────────────────────────
     expected_stem = record["evaluation_id"].translate(_FILENAME_REPLACE)
     if file_path.stem != expected_stem:

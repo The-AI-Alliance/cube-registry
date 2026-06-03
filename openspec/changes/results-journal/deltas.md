@@ -50,13 +50,17 @@ add+modify PR to silently slip past append-only enforcement.
 7. `results.avg_score` is within metric bounds (default 0–1; per-cube override
    via optional entry field in a later RFC).
 8. `agent.git_commit` is a 40-char lowercase hex string.
-9. File size ≤ 50 KB.
-10. `evaluation_id` is globally unique within `results/<cube>/` **and** unique
+9. `agent.primary_dependencies` (when present) is a subset of
+   `agent.dependency_versions` — orphaned primary names that don't appear in
+   the recorded versions dict would render as `— missing` in every column of
+   the UI.
+10. File size ≤ 50 KB.
+11. `evaluation_id` is globally unique within `results/<cube>/` **and** unique
     across the other files being added in the same PR (sibling-batch check —
     two adds with the same id in one PR both fail).
-11. Filename equals the sanitized `{evaluation_id}.json`
-    (`/` → `__`, charset enforced by schema).
-12. Filename does NOT start with `_` (reserved for CI-bot bookkeeping).
+12. Filename equals the sanitized `{evaluation_id}.json`
+    (`/` → `__`, charset enforced by schema). Also rejects leading `_`
+    (reserved for CI-bot bookkeeping like `_submissions.json`).
 
 On all-pass: apply `auto-merge` label → existing GitHub auto-merge merges the PR.
 On any failure: post a comment listing the failing checks, do not label.
