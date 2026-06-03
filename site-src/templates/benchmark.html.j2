@@ -426,12 +426,34 @@
       // ── Grid.js table ──────────────────────────────────────────────────
       // Pre-flatten rows for sorting. Numeric score/timestamp give correct sort
       // order; HTML renderers below handle the display.
+      function subsetCell(s) {
+        // Compact 2-line layout: name on top, filter / "custom: N tasks" on
+        // bottom. Makes the subset shape immediately readable — full subset
+        // vs named filter vs hand-picked list — without consulting the modal.
+        const name = s && s.name ? s.name : '—';
+        const n    = s && s.n_tasks != null ? s.n_tasks : '?';
+        let bottom;
+        if (s && s.task_ids && s.task_ids.length) {
+          bottom = 'custom: ' + s.task_ids.length + ' tasks';
+        } else if (s && s.filter) {
+          bottom = s.filter + ' · ' + n + ' tasks';
+        } else {
+          bottom = n + ' tasks';
+        }
+        return gridjs.html(
+          '<div class="font-mono text-gray-700">' + escapeHtml(name) + '</div>' +
+          '<div class="font-mono text-gray-400 text-[10px]">' + escapeHtml(bottom) + '</div>'
+        );
+      }
       const rows = RESULTS.map(r => ({
         eid: r.evaluation_id,
         date: r._date,
         ts: r.evaluation_timestamp,
         agentModel: (r.agent.config_type || '') + ' / ' + (r.agent.llm_model || ''),
-        subset: r.benchmark_subset.name + ' · ' + r.benchmark_subset.n_tasks + ' tasks',
+        subset: r.benchmark_subset,
+        // Plain-text version powers Grid.js's sort comparator — without it,
+        // sorting on the Subset column tries to compare objects.
+        subsetSortKey: (r.benchmark_subset && r.benchmark_subset.name) || '',
         scoreNum: r.results.avg_score,
         scoreDisp: r.results.avg_score.toFixed(3) +
           (r.results.std_err != null ? ' ± ' + r.results.std_err.toFixed(3) : ''),
@@ -474,9 +496,20 @@
           { id: 'date', name: 'Date' },
           { id: 'ts', name: '', hidden: true },
           { id: 'agentModel', name: 'Agent / Model' },
-          { id: 'subset', name: 'Subset' },
+          // Subset cell renders the BenchmarkSubset object as a 2-line
+          // name + filter/custom layout. Sort uses the parallel subsetSortKey
+          // column so Grid.js compares plain strings, not objects.
+          { id: 'subset', name: 'Subset',
+            sort: { compare: (a, b) => {
+              // a/b are the BenchmarkSubset objects; use name for sort.
+              const ka = (a && a.name) || '';
+              const kb = (b && b.name) || '';
+              return ka.localeCompare(kb);
+            }},
+            formatter: (s) => subsetCell(s) },
+          { id: 'subsetSortKey', name: '', hidden: true },
           { id: 'scoreNum', name: 'Score',
-            formatter: (n, row) => row.cells[7].data /* scoreDisp */ },
+            formatter: (n, row) => row.cells[8].data /* scoreDisp */ },
           { id: 'scoreDisp', name: '', hidden: true },
           { id: 'outcomes', name: 'Outcomes',
             sort: false,
@@ -492,7 +525,7 @@
               escapeHtml(eid) + '">Details →</button>') },
         ],
         data: rows.map(r => [
-          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.scoreNum, r.scoreDisp, r.outcomes, r.eid
+          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.subsetSortKey, r.scoreNum, r.scoreDisp, r.outcomes, r.eid
         ]),
         sort: true,
         pagination: { limit: 20 },
