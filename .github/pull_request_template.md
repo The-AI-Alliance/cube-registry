@@ -1,9 +1,10 @@
 ## CUBE Registry Submission
 
 Thank you for submitting a benchmark to the CUBE Registry!
-CI will run four pre-merge gates (ownership, quick-compliance,
-slow-compliance, LLM semantic review). On all green and a path-isolated
-diff under `entries/<id>.yaml`, the PR auto-merges.
+CI runs three pre-merge hard gates (ownership, quick-compliance, LLM
+semantic review) plus an informational slow-compliance signal. On hard
+gates green and a path-isolated diff under `entries/<id>.yaml`, the PR
+auto-merges.
 
 ---
 
@@ -21,18 +22,20 @@ diff under `entries/<id>.yaml`, the PR auto-merges.
 
 ### What CI will check
 
-| Check | When | ~Time |
-|---|---|---|
-| ownership-check | On PR | <1 min |
-| quick-compliance (schema + install + introspect) | On PR | ~2 min |
-| slow-compliance (debug task on runner) | On PR | ~5 min |
-| entry-review (LLM semantic check) | On PR | ~1 min |
-| Full stress run on `supported_infra` cloud VMs | Post-merge (async) | ~5-30 min |
+| Check | When | ~Time | Hard gate? |
+|---|---|---|---|
+| ownership-check | On PR | <1 min | Yes |
+| quick-compliance (schema + install + introspect) | On PR | ~2 min | Yes |
+| slow-compliance (debug task on runner) | On PR | ~5 min | No (informational) |
+| entry-review (LLM semantic check) | On PR | ~1 min | Yes |
+| Full stress run on `supported_infra` cloud VMs | Post-merge (async) | ~5-30 min | Post-merge canonical |
 
-When all four pre-merge gates pass AND the diff is strictly under
+When all hard gates pass AND the diff is strictly under
 `entries/<id>.yaml` AND the PR is from this repo (not a fork), the PR
 auto-merges. Otherwise it's labeled `ready-for-review` for a maintainer
-(the comment will list the specific reasons).
+(the comment will list the specific reasons). slow-compliance failing
+shows as a red check but does not block — cubes that need Docker/VM/etc.
+naturally can't run with `provider=local`.
 
 The post-merge stress run runs asynchronously after merge. A failure opens
 a GitHub issue tagging your `authors[].github` handles; the entry stays in

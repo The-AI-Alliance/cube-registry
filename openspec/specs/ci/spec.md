@@ -68,13 +68,18 @@ Steps:
 On success: trigger the slow-compliance + entry-review gates below. On
 failure: PR shows the check failure; submitter fixes and pushes.
 
-## Slow compliance (PR-time, `provider: local`, ~5 min)
+## Slow compliance (PR-time, `provider: local`, ~5 min, informational)
 
 Runs the debug task on the GitHub-Actions runner — no cloud credentials, no
-VM provisioning. Treats failure as a hard gate: auto-merge cannot fire if
-the cube can't complete a single debug episode. For benchmarks whose `local`
-provider isn't supported (no Docker support, GPU-only, etc.), this step
-short-circuits to `ready-for-review` and a maintainer reviews manually.
+VM provisioning. **Informational, not a hard gate**: most real cubes
+(SWE-bench, OSWorld, terminal-bench) need Docker/VM/large-disk environments
+that don't fit on a GHA runner. Hard-gating here would exclude almost every
+real benchmark from auto-merge.
+
+`continue-on-error: true` lets the job's failure surface on the PR as a red
+check (a useful signal for cubes that *do* support `local`) without
+propagating to downstream `success()`. The canonical execution gate is the
+post-merge `slow-check.yml` on cloud VMs across `supported_infra`.
 
 ## Entry review (PR-time, ~1 min)
 
@@ -104,12 +109,14 @@ Fires when **all** of:
 
 - ownership-check ✅
 - quick-compliance ✅
-- slow-compliance ✅
 - entry-review verdict = `PASS`
 - PR diff is strictly additions/modifications under `entries/<id>.yaml`
   (no deletes, no other paths touched — `path_isolated == true`)
 - PR is from the same repo (fork PRs can't `gh pr merge` with the default
   GITHUB_TOKEN; they fall back to manual merge)
+
+slow-compliance is informational only — its failure does not block
+auto-merge. The canonical execution gate is the post-merge cloud-VM run.
 
 On firing: applies `auto-merge` label, calls `gh pr merge --auto --squash`.
 
@@ -174,9 +181,11 @@ Runs `site-src/generate.py` → writes `docs/`. Commit via CI bot. See
 4. `OWNERS.yaml` is writable only by the CI bot.
 5. `stress-results/` is writable only by the CI bot.
 6. Entries auto-merge iff (ownership-check ∧ quick-compliance ∧
-   slow-compliance ∧ entry-review verdict=PASS) AND the diff is strictly
+   entry-review verdict=PASS) AND the diff is strictly
    additions/modifications under `entries/<id>.yaml` AND the PR is from the
-   same repo. Any deviation falls back to `ready-for-review` + manual merge.
+   same repo. slow-compliance is informational (`continue-on-error`); its
+   failure does not block. Any deviation falls back to `ready-for-review` +
+   manual merge.
 7. The entry-review prompt lives at `scripts/entry_review_prompt.md` —
    checked into the repo, diffable, auditable. The Claude action runs in a
    separate job from ownership/schema/install/slow-check; compromising the

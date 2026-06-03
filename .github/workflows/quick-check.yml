@@ -205,11 +205,16 @@ jobs:
             git reset --hard HEAD~1
           fi
 
-  # ── 3. Slow compliance (pre-merge benchmark execution) ─────────────────
-  # Runs the actual debug task in a sandboxed environment.  No cloud
-  # credentials are injected here — provisioning + credential-bearing steps
-  # belong to a separate (future) `provision-infra` step per slow-check.yml.
-  # For now, the script runs against `local` provider only (Docker on runner).
+  # ── 3. Slow compliance (informational pre-merge signal) ────────────────
+  # Runs the actual debug task with provider=local on the GHA runner.  This
+  # is INFORMATIONAL — most real cubes (SWE-bench, OSWorld, terminal-bench)
+  # need Docker/VM/large-disk environments that don't fit on a GHA runner,
+  # and the post-merge slow-check.yml is the canonical cloud-VM gate.
+  #
+  # Hard-gating here would exclude almost every real benchmark from auto-merge.
+  # Failure surfaces as a red check on the PR (submitter signal) but does
+  # NOT block auto-merge — `continue-on-error: true` lets downstream jobs
+  # see success() upstream.  The canonical gate is post-merge slow-check.yml.
   slow-compliance:
     name: slow-compliance
     runs-on: ubuntu-latest
@@ -217,6 +222,7 @@ jobs:
     if: |
       success() &&
       needs.quick-compliance.outputs.changed_entries_any == 'true'
+    continue-on-error: true
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4.2.2
