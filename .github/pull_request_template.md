@@ -1,8 +1,9 @@
 ## CUBE Registry Submission
 
 Thank you for submitting a benchmark to the CUBE Registry!
-CI will validate your entry automatically. On all checks green, the PR is labeled
-`ready-for-review` and a maintainer merges (typically within a business day).
+CI will run four pre-merge gates (ownership, quick-compliance,
+slow-compliance, LLM semantic review). On all green and a path-isolated
+diff under `entries/<id>.yaml`, the PR auto-merges.
 
 ---
 
@@ -22,15 +23,20 @@ CI will validate your entry automatically. On all checks green, the PR is labele
 
 | Check | When | ~Time |
 |---|---|---|
-| Schema validation | On PR | <1 min |
-| PyPI install + API introspection | On PR | ~2 min |
-| Full debug episode on real infra | Post-merge (async) | ~5-15 min |
+| ownership-check | On PR | <1 min |
+| quick-compliance (schema + install + introspect) | On PR | ~2 min |
+| slow-compliance (debug task on runner) | On PR | ~5 min |
+| entry-review (LLM semantic check) | On PR | ~1 min |
+| Full stress run on `supported_infra` cloud VMs | Post-merge (async) | ~5-30 min |
 
-When `ownership-check` and `quick-compliance` both pass, the PR is labeled
-`ready-for-review` and a maintainer completes the merge.
+When all four pre-merge gates pass AND the diff is strictly under
+`entries/<id>.yaml` AND the PR is from this repo (not a fork), the PR
+auto-merges. Otherwise it's labeled `ready-for-review` for a maintainer
+(the comment will list the specific reasons).
 
-The slow check runs asynchronously after merge. A failure will open a GitHub issue tagging
-your GitHub handle from `authors[].github`.
+The post-merge stress run runs asynchronously after merge. A failure opens
+a GitHub issue tagging your `authors[].github` handles; the entry stays in
+the registry with `status: degraded` until fixed.
 
 ---
 

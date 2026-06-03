@@ -12,18 +12,28 @@ merges; everything else is automated.
 ## Pipeline overview
 
 ```
-PR opened
- ├─ ownership-check  (scripts/ownership_check.py, ~10s)  ─┐
- └─ quick-check      (scripts/quick_check.py, ~2 min)     ├─ both pass → ready-for-review label
-                                                          │
-maintainer reviews + merges                               │
+PR opened (entries/*.yaml)
+ ├─ ownership-check  (scripts/ownership_check.py, ~10s)
+ ├─ quick-compliance (scripts/quick_check.py, ~2 min, Docker sandbox)
+ ├─ slow-compliance  (scripts/slow_check.py --provider local, ~5 min)
+ └─ entry-review     (scripts/entry_review.py, Claude, ~1 min)
+                          ↳ verdict PASS + path-isolated + same-repo → auto-merge
+                          ↳ everything else → ready-for-review (manual)
+
+post-merge (push to main)
  ├─ update-owners   (writes OWNERS.yaml via bot)
  ├─ generate-site   (site-src/generate.py → docs/)
- └─ slow-check      (async, real infra, ~5–30 min)
+ └─ slow-check      (cloud-VM stress run on supported_infra → stress-results/)
 
 weekly cron
  └─ periodic-health-check  (PyPI availability + URL reachability)
 ```
+
+The pre-merge slow-compliance runs the debug task on the runner (provider
+`local`) — fast gate, no cloud spend. The post-merge slow-check is the full
+stress run across `supported_infra` (cloud providers) that writes
+`stress-results/<id>/v<version>.json`. Drift is caught by the weekly
+health-check.
 
 ## Ownership check (every PR)
 
@@ -55,9 +65,61 @@ Steps:
 7. Check for debug module: `has_debug_task`, `has_debug_agent`.
 8. Write CI-derived fields back to the YAML in the PR branch.
 
-On success: label `ready-for-review` + post a summary comment. No auto-merge.
+On success: trigger the slow-compliance + entry-review gates below. On
+failure: PR shows the check failure; submitter fixes and pushes.
 
-## Slow compliance (post-merge, async)
+## Slow compliance (PR-time, `provider: local`, ~5 min)
+
+Runs the debug task on the GitHub-Actions runner — no cloud credentials, no
+VM provisioning. Treats failure as a hard gate: auto-merge cannot fire if
+the cube can't complete a single debug episode. For benchmarks whose `local`
+provider isn't supported (no Docker support, GPU-only, etc.), this step
+short-circuits to `ready-for-review` and a maintainer reviews manually.
+
+## Entry review (PR-time, ~1 min)
+
+LLM-based semantic check. Runs `scripts/entry_review.py` against the entry,
+its PyPI metadata, the linked repo's README, and the existing `entries/` +
+`known-authors.yaml`. The script invokes Claude with a forced tool call to
+return a structured verdict:
+
+```yaml
+verdict: PASS | CONCERN
+checks:
+  description_matches_package: pass | fail | unverified
+  authors_consistent_with_git: pass | fail | unverified
+  no_id_squat_vs_existing:     pass | fail | unverified
+  no_brand_impersonation:      pass | fail | unverified
+  wrapper_license_plausible:   pass | fail | unverified
+notes: <freeform>
+```
+
+If `ANTHROPIC_API_KEY` is not set in repo secrets the step graceful-degrades
+to `verdict=UNKNOWN` → routes to `ready-for-review` (today's behaviour). This
+lets the workflow ship and the secret get added when ready.
+
+## Auto-merge (when all gates pass)
+
+Fires when **all** of:
+
+- ownership-check ✅
+- quick-compliance ✅
+- slow-compliance ✅
+- entry-review verdict = `PASS`
+- PR diff is strictly additions/modifications under `entries/<id>.yaml`
+  (no deletes, no other paths touched — `path_isolated == true`)
+- PR is from the same repo (fork PRs can't `gh pr merge` with the default
+  GITHUB_TOKEN; they fall back to manual merge)
+
+On firing: applies `auto-merge` label, calls `gh pr merge --auto --squash`.
+
+## Request human review (fallback)
+
+Fires when auto-merge can't — verdict ≠ PASS (CONCERN or UNKNOWN), path not
+isolated, or PR from a fork. Applies `ready-for-review` label, posts a
+summary listing the specific reasons. Maintainer completes the merge.
+
+## Slow compliance (post-merge, cloud VMs, async)
 
 Re-triggered when `version`, `package`, `supported_infra`, or any `image_url`
 changes — NOT on tag/description/legal-only edits.
@@ -111,7 +173,14 @@ Runs `site-src/generate.py` → writes `docs/`. Commit via CI bot. See
 3. Slow-check never imports the benchmark package in the runner.
 4. `OWNERS.yaml` is writable only by the CI bot.
 5. `stress-results/` is writable only by the CI bot.
-6. Entries never auto-merge — a maintainer reviews every PR.
+6. Entries auto-merge iff (ownership-check ∧ quick-compliance ∧
+   slow-compliance ∧ entry-review verdict=PASS) AND the diff is strictly
+   additions/modifications under `entries/<id>.yaml` AND the PR is from the
+   same repo. Any deviation falls back to `ready-for-review` + manual merge.
+7. The entry-review prompt lives at `scripts/entry_review_prompt.md` —
+   checked into the repo, diffable, auditable. The Claude action runs in a
+   separate job from ownership/schema/install/slow-check; compromising the
+   LLM step alone does not bypass the other gates.
 
 ## Gotchas
 

@@ -51,11 +51,17 @@ This generates the entry YAML from your `pyproject.toml`, forks this repo, commi
 2. Create `entries/<your-benchmark-id>.yaml` (see template below)
 3. Open a pull request
 
-Either way, CI validates the entry. On all checks green, the PR is labeled
-`ready-for-review` and a maintainer one-clicks merge — typically within a
-business day. Auto-merge for entries is on the roadmap; see
-[openspec/changes/entry-auto-merge/](openspec/changes/entry-auto-merge/proposal.md)
-for the design.
+Either way, CI runs four pre-merge gates: ownership, quick-compliance
+(schema + Docker-sandboxed install + introspection), slow-compliance (debug
+task on the runner), and an LLM semantic review. If all four pass and the
+PR diff is strictly under `entries/<id>.yaml`, the PR auto-merges. If the
+LLM flags a `CONCERN`, the PR is labeled `ready-for-review` and a
+maintainer finishes the merge.
+
+Fork PRs and PRs that touch paths outside `entries/` always fall back to
+maintainer-merge. See
+[openspec/specs/ci/spec.md](openspec/specs/ci/spec.md) for the full pipeline
+contract.
 
 ### Entry template
 
@@ -93,23 +99,27 @@ Fields populated automatically by CI (do not fill):
 
 ### Updating your entry
 
-Open a PR modifying your existing YAML. CI verifies you are a registered author
-(via `OWNERS.yaml`). On checks green, the PR is labeled `ready-for-review` for
-a maintainer to merge.
+Open a PR modifying your existing YAML. CI verifies you are a registered
+author (via `OWNERS.yaml`) and runs the same four gates as a new submission.
+On all gates green, the PR auto-merges.
 
 ---
 
 ## Compliance checks
 
-Every submission goes through two tiers:
+Every submission goes through four pre-merge gates and one post-merge gate:
 
-| Tier | When | What | Cost |
+| Gate | When | What | Cost |
 |---|---|---|---|
-| Quick check | On PR (~2 min) | Schema, PyPI install, API introspection | Free |
-| Slow check | Post-merge (async) | Full debug episode on real infra | ~$0.05/VM cube |
+| ownership-check | On PR (~10s) | Submitter is in `OWNERS.yaml` for the entry (or it's new) | Free |
+| quick-compliance | On PR (~2 min) | Schema, PyPI install, API introspection — hardened Docker sandbox, no credentials | Free |
+| slow-compliance | On PR (~5 min) | Debug task runs to completion on the GitHub runner (`local` provider) | Free |
+| entry-review | On PR (~1 min) | LLM semantic check — verdict `PASS` or `CONCERN` | ~$1/PR |
+| slow-check | Post-merge (async, ~5–30 min) | Full stress run on cloud VMs across `supported_infra`; writes `stress-results/` | ~$0.05/VM |
 
-A slow check failure opens a GitHub issue tagging the entry authors.
-Entries remain in the registry regardless — platforms decide which tier they require.
+Pre-merge gates failing → check shows red on the PR; submitter pushes a fix.
+Post-merge slow-check failing → opens a GitHub issue tagging the entry authors;
+entry remains in the registry with `status: degraded` until fixed.
 
 ---
 

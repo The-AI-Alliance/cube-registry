@@ -66,6 +66,13 @@ filename matches `id` — both must be globally unique.
   branch before `ready-for-review` is labeled.
 - Update by opening a PR that modifies the YAML. Quick-check verifies the submitter
   is listed in `OWNERS.yaml` for that entry.
+- On submission, an LLM reviewer (`scripts/entry_review.py`) checks that the
+  entry's description matches what the package + linked repo's README
+  actually do, that `authors[].github` are consistent with the cube
+  subdirectory's git history, that `id` / `name` don't squat or impersonate
+  an existing entry, and that the licenses are plausible against the
+  upstream. PRs flagged `CONCERN` are labeled `ready-for-review` for a
+  maintainer; PRs that pass all gates auto-merge.
 
 ## Gotchas
 
