@@ -1,0 +1,82 @@
+name: Record Submitter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "results/*/*.json"
+
+jobs:
+  record-submitter:
+    name: Append _submissions.json entries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # bot bypass scoped to results/*/_submissions.json
+      pull-requests: read   # look up the PR author for the merge commit
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4.2.2
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Find newly added result files
+        id: added
+        run: |
+          # Only newly added (A) JSON files under results/<cube>/. Skip the
+          # bot-only _submissions.json bookkeeping file. The regex matches
+          # paths like "results/<cube>/_anything.json" — the leading '/' in
+          # the old form was a bug (W5) that made the filter a no-op.
+          ADDED=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'results/*/*.json' \
+                    | grep -v '^results/[^/]*/_' || true)
+          ADDED=$(printf '%s' "$ADDED" | tr '\n' ' ')
+          echo "files=$ADDED" >> "$GITHUB_OUTPUT"
+          echo "Added: $ADDED"
+
+      - name: Look up PR author for HEAD commit
+        id: author
+        if: steps.added.outputs.files != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The push to main came from a merged PR — find the PR for HEAD.
+          SHA=$(git rev-parse HEAD)
+          AUTHOR=$(gh api "repos/${{ github.repository }}/commits/$SHA/pulls" \
+                     --jq '.[0].user.login // empty')
+          if [ -z "$AUTHOR" ]; then
+            echo "::warning::Could not determine PR author for $SHA; recording as 'unknown'."
+            AUTHOR="unknown"
+          fi
+          echo "author=$AUTHOR" >> "$GITHUB_OUTPUT"
+
+      - name: Append to _submissions.json
+        if: steps.added.outputs.files != ''
+        env:
+          AUTHOR: ${{ steps.author.outputs.author }}
+          FILES:  ${{ steps.added.outputs.files }}
+          MERGE_TIMESTAMP: ${{ github.event.head_commit.timestamp }}
+        run: |
+          python scripts/record_submitter.py \
+            --author "$AUTHOR" \
+            --merge-timestamp "$MERGE_TIMESTAMP" \
+            --files $FILES
+
+      - name: Commit _submissions.json updates
+        run: |
+          git config user.name  "cube-registry-bot"
+          git config user.email "cube-registry-bot@users.noreply.github.com"
+          git add 'results/*/_submissions.json'
+          if git diff --cached --quiet; then
+            echo "_submissions.json unchanged"
+            exit 0
+          fi
+          git commit -s -m "ci: record submitter [skip ci]"
+          # Race window: two concurrent record-submitter runs could both rebase
+          # off the same main HEAD. Rebase onto remote main before push so the
+          # second run gracefully picks up the first's commit (S3b).
+          git pull --rebase origin main
+          git push

@@ -108,6 +108,53 @@ Entries remain in the registry regardless — platforms decide which tier they r
 
 ---
 
+## Submitting a result
+
+The registry also hosts a per-cube **community results journal** — one JSON file
+per evaluation run, browsable on each cube's page. Submissions are
+self-reported; scores are not independently verified.
+
+### Submission format
+
+One file per run at `results/<cube-id>/<sanitized-evaluation-id>.json`,
+conforming to [`results-schema.json`](results-schema.json). The file captures
+*what was evaluated* (benchmark + version + subset + `n_tasks` denominator) and
+*what happened* (aggregate score + std err + mutually-exclusive outcome counts:
+success / clean failure / max-steps / system error / missing). No per-task
+data — keep raw trajectories on your own infra.
+
+### How to submit
+
+The easiest path is from cube-harness:
+
+```sh
+uv run scripts/submit_to_journal.py <experiment_dir>
+```
+
+…which builds the JSON, clones cube-registry, and opens a PR via `gh`.
+
+Or manually:
+
+1. Fork cube-registry.
+2. Create `results/<cube-id>/<your-evaluation-id>.json` (slashes in the
+   evaluation-id are replaced with `__` in the filename).
+3. Open a PR. CI validates schema + cross-references the registry + checks
+   outcome consistency. If everything passes and the PR strictly adds files
+   under `results/`, the PR **auto-merges**.
+
+> ⚠ **Fork PRs auto-merge only when push permissions exist.** GitHub's
+> default `GITHUB_TOKEN` is read-only for `pull_request` workflows triggered
+> from a fork, so the `gh pr merge --auto` step is a no-op there. Validation
+> still runs and posts a green summary — a maintainer will need to complete
+> the merge by hand. To get true auto-merge, submit from a branch of this
+> repo (`cube registry add` and the cube-harness submitter both support
+> this) or wait for the maintainer review.
+
+The journal is **append-only**. Corrections are made by submitting a new
+record with a `supersedes` field referencing the prior `evaluation_id`.
+
+---
+
 ## Legal
 
 License information in this registry is **self-reported by cube developers** and has not been
