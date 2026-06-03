@@ -1,0 +1,41 @@
+id: terminalbench2
+name: "Terminal-Bench 2"
+version: "0.1.0"
+description: >
+  Terminal-Bench 2 (Laude Institute / Harbor Framework) ported to the
+  CUBE protocol — 89 real-world terminal tasks (compile, debug, deploy,
+  query, modernize) with pytest-based validation. Each task hands the
+  agent a Linux shell pre-loaded with a project, asks for a concrete
+  deliverable (a fixed bug, a passing test, a compiled binary, an
+  inferred answer), and verifies the result by running an upstream pytest
+  test suite the agent never sees. Tasks span 16 categories with
+  difficulty levels easy / medium / hard.
+package: terminalbench2-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/terminalbench2-cube"
+
+authors:
+- github: recursix
+  name: Alexandre Lacoste
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: Apache-2.0
+    source_url: "https://github.com/harbor-framework/terminal-bench-2"
+    verified_by_original_authors: false
+
+getting_started_url: "https://github.com/harbor-framework/terminal-bench-2"
+tags:
+- coding
+- os
+status: active
+resources: []
+task_count: 89
+has_debug_task: true
+has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false
