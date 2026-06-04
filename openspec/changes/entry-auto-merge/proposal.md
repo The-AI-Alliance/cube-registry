@@ -83,7 +83,7 @@ to the reviewer.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Doc-truth fix: stop promising auto-merge until it exists | ✅ shipped (PR #50) |
-| 1 | `entry-review` job + slow-compliance (`provider: local`) pre-merge + auto-merge gated on `ownership ∧ quick ∧ slow ∧ review=PASS + path-isolated + same-repo` | ✅ shipped (PR #50). Active once `ANTHROPIC_API_KEY` is set in repo secrets; graceful-degrades to `ready-for-review` otherwise. |
+| 1 | `entry-review` job + slow-compliance (`provider: local`, **informational** — `continue-on-error: true`) pre-merge + auto-merge gated on `ownership ∧ quick ∧ review=PASS + path-isolated + same-repo`. slow-compliance is informational because most real cubes need Docker/VM/large-disk environments that don't fit on a GHA runner. | ✅ shipped (PR #50). Active once `ANTHROPIC_API_KEY` is set in repo secrets; graceful-degrades to `ready-for-review` otherwise. |
 | 2 | Cloud-VM slow-check (`supported_infra` providers) moved pre-merge with `/ok-to-test` label-gate for fork PRs | Later registry PR |
 | 3 | Per-cube `review_overrides` (e.g. cubes with unusual provenance) | Later, optional |
 

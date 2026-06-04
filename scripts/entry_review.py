@@ -263,7 +263,21 @@ def main(argv: list[str] | None = None) -> int:
         print(user_content)
         return 0
 
-    verdict = call_claude(system_prompt, user_content, args.model)
+    # C3 fix (code review): catch transient LLM errors so the script always
+    # exits 0 with a structured verdict. Otherwise a network blip / API 5xx
+    # / schema-validation 400 fails the workflow step → downstream `success()`
+    # is false → BOTH auto-merge AND request-review skip → PR stuck with a
+    # red check and no actionable feedback. With this guard the failure mode
+    # is identical to "API key not set" — verdict=UNKNOWN routes to
+    # request-review with the error in the notes.
+    try:
+        verdict = call_claude(system_prompt, user_content, args.model)
+    except Exception as e:  # noqa: BLE001  -- intentional broad catch at boundary
+        verdict = {
+            "verdict": "UNKNOWN",
+            "checks": dict.fromkeys(CHECK_KEYS, "unverified"),
+            "notes": f"LLM review failed: {type(e).__name__}: {e}",
+        }
 
     Path(args.verdict_out).write_text(json.dumps(verdict, indent=2))
     Path(args.comment_out).write_text(format_verdict_comment(verdict, entry.get("id", "")))

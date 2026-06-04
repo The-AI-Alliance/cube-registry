@@ -172,6 +172,42 @@ class TestFetchRepoReadme:
         out = er.fetch_repo_readme("git+https://github.com/foo/bar")
         assert out == "# legacy"
 
+    # SSRF / regex hardening (code-review C5 follow-up)
+
+    def test_rejects_typosquat_host(self, monkeypatch):
+        """github.com.evil.com must NOT match — re.match is anchored at start."""
+        called = []
+        monkeypatch.setattr(er, "http_get", lambda u, timeout=15: called.append(u) or None)
+        out = er.fetch_repo_readme("git+https://github.com.evil.com/foo/bar")
+        assert out is None
+        assert called == []  # never fetched
+
+    def test_rejects_non_https_scheme(self, monkeypatch):
+        called = []
+        monkeypatch.setattr(er, "http_get", lambda u, timeout=15: called.append(u) or None)
+        for bad in [
+            "https://github.com/foo/bar",  # missing git+ prefix
+            "git+http://github.com/foo/bar",  # plain http
+            "git+ssh://git@github.com/foo/bar",
+            "file:///etc/passwd",
+        ]:
+            assert er.fetch_repo_readme(bad) is None
+        assert called == []
+
+    def test_captures_owner_repo_only(self, monkeypatch):
+        """Even if owner contains a literal `@`, urllib quotes it; URL is never shelled."""
+        captured = []
+
+        def fake_http(url, timeout=15):
+            captured.append(url)
+            return "# README" if "main" in url else None
+
+        monkeypatch.setattr(er, "http_get", fake_http)
+        # Pathologically-crafted owner — regex accepts non-slash chars but
+        # raw.githubusercontent.com will 404, no shell exposure.
+        er.fetch_repo_readme("git+https://github.com/foo@bar/baz")
+        assert captured[0] == "https://raw.githubusercontent.com/foo@bar/baz/main/README.md"
+
 
 # ── comment formatting ──────────────────────────────────────────────────────
 
@@ -221,6 +257,38 @@ class TestMain:
         verdict = json.loads(v_out.read_text())
         assert verdict["verdict"] == "PASS"
         assert "**Verdict:** `PASS`" in c_out.read_text()
+
+    def test_llm_error_writes_unknown_verdict(self, tmp_path, monkeypatch):
+        """C3 fix: transient LLM errors must yield verdict=UNKNOWN, not raise.
+
+        Otherwise the workflow step exits non-zero, downstream success() is
+        false, and BOTH auto-merge AND request-review skip — PR stuck with
+        a red check + no actionable feedback.
+        """
+        monkeypatch.setattr(er, "REPO_ROOT", tmp_path)
+        monkeypatch.setattr(er, "fetch_pypi", lambda pkg: None)
+        monkeypatch.setattr(er, "fetch_repo_readme", lambda url: None)
+
+        def boom(*a, **kw):
+            raise ConnectionError("network blip")
+
+        monkeypatch.setattr(er, "call_claude", boom)
+        entry_path = write_entry(tmp_path, minimal_entry())
+        v_out = tmp_path / "verdict.json"
+        c_out = tmp_path / "comment.md"
+        rc = er.main(
+            [
+                "--entry", str(entry_path),
+                "--verdict-out", str(v_out),
+                "--comment-out", str(c_out),
+            ]
+        )
+        assert rc == 0
+        verdict = json.loads(v_out.read_text())
+        assert verdict["verdict"] == "UNKNOWN"
+        assert all(v == "unverified" for v in verdict["checks"].values())
+        assert "ConnectionError" in verdict["notes"]
+        assert "network blip" in verdict["notes"]
 
     def test_writes_concern_verdict(self, tmp_path, monkeypatch):
         monkeypatch.setattr(er, "REPO_ROOT", tmp_path)

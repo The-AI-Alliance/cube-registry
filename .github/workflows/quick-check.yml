@@ -90,11 +90,14 @@ jobs:
           # Any deletes/renames inside entries/?
           deleted=$(git diff --diff-filter=DR --name-only "$BASE_SHA" "$HEAD_SHA" -- 'entries/*' || true)
 
-          # Anything touched outside entries/?
-          non_entries=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" \
-            | grep -v '^entries/' || true)
+          # Anything that isn't a flat entries/<id>.yaml addition/modification?
+          # Tight pattern (S1 fix from code review): entries/<single-segment>.yaml only.
+          # This rejects subdirs (entries/foo/bar.yaml), non-yaml (entries/foo.txt),
+          # and anything outside entries/ — all in one pass.
+          non_compliant=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" \
+            | grep -v '^entries/[^/]*\.yaml$' || true)
 
-          if [ -n "$deleted" ] || [ -n "$non_entries" ]; then
+          if [ -n "$deleted" ] || [ -n "$non_compliant" ]; then
             echo "path_isolated=false" >> "$GITHUB_OUTPUT"
             echo "PR touches deleted/non-entry paths — auto-merge will be skipped."
           else
@@ -299,6 +302,7 @@ jobs:
           fi
 
           OVERALL="PASS"
+          ANY_UNKNOWN=false
           : > /tmp/entry-review-comment.md
           while IFS= read -r entry_file; do
             [ -z "$entry_file" ] && continue
@@ -310,11 +314,19 @@ jobs:
             cat /tmp/comment.md >> /tmp/entry-review-comment.md
             echo >> /tmp/entry-review-comment.md
             VERDICT=$(python -c "import json; print(json.load(open('/tmp/verdict.json'))['verdict'])")
-            if [ "$VERDICT" != "PASS" ]; then
-              OVERALL="CONCERN"
-            fi
+            case "$VERDICT" in
+              CONCERN) OVERALL="CONCERN" ;;
+              UNKNOWN) ANY_UNKNOWN=true ;;
+            esac
           done <<< "$ENTRIES"
 
+          # Preserve PASS/CONCERN/UNKNOWN distinction (C3 fix): real concerns
+          # from the LLM are CONCERN; everything else unverifiable but with
+          # no real concerns is UNKNOWN. Without this we'd conflate "Claude
+          # said CONCERN" with "API errored", confusing the fallback comment.
+          if [ "$OVERALL" = "PASS" ] && [ "$ANY_UNKNOWN" = "true" ]; then
+            OVERALL="UNKNOWN"
+          fi
           echo "verdict=$OVERALL" >> "$GITHUB_OUTPUT"
 
       - name: Post review comment
@@ -340,14 +352,19 @@ jobs:
       needs.entry-review.outputs.verdict == 'PASS' &&
       github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - name: Apply auto-merge label + enable native auto-merge
+      - name: Apply auto-merge label + merge
+        # S2 fix: `gh pr merge --auto` requires branch-protection rules to be
+        # configured; without them it silently no-ops. The workflow's `if:`
+        # already enforces all gates (ownership ∧ quick ∧ review=PASS ∧
+        # path-isolated ∧ same-repo), so an unconditional `--squash` here is
+        # both correct and direct.
         env:
           GH_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_FULL: ${{ github.repository }}
         run: |
           gh pr edit "$PR_NUMBER" --repo "$REPO_FULL" --add-label "auto-merge"
-          gh pr merge "$PR_NUMBER" --repo "$REPO_FULL" --auto --squash
+          gh pr merge "$PR_NUMBER" --repo "$REPO_FULL" --squash
 
   # ── 6. Request human review (fallback for everything else) ─────────────
   # Fires when auto-merge can't:
@@ -381,9 +398,9 @@ jobs:
 
           REASONS=""
           if [ "$VERDICT" = "CONCERN" ]; then
-            REASONS="${REASONS}- LLM review flagged a CONCERN (see comment above)\n"
+            REASONS="${REASONS}- LLM review flagged a CONCERN (see review comment above)\n"
           elif [ "$VERDICT" = "UNKNOWN" ]; then
-            REASONS="${REASONS}- LLM review skipped (ANTHROPIC_API_KEY not configured)\n"
+            REASONS="${REASONS}- LLM review unavailable (no API key configured or transient error — see review comment above for details)\n"
           fi
           if [ "$PATH_ISOLATED" != "true" ]; then
             REASONS="${REASONS}- PR touches paths outside \`entries/<id>.yaml\` or contains deletes/renames\n"
@@ -392,4 +409,4 @@ jobs:
             REASONS="${REASONS}- PR submitted from a fork (GITHUB_TOKEN cannot auto-merge)\n"
           fi
 
-          gh pr comment "$PR_NUMBER" --repo "$REPO_FULL" --body "$(printf '✅ ownership-check, quick-compliance, slow-compliance passed.\n\nAuto-merge skipped because:\n\n%b\nA maintainer will review and merge.' "$REASONS")"
+          gh pr comment "$PR_NUMBER" --repo "$REPO_FULL" --body "$(printf '✅ ownership-check + quick-compliance passed (slow-compliance is informational).\n\nAuto-merge skipped because:\n\n%b\nA maintainer will review and merge.' "$REASONS")"

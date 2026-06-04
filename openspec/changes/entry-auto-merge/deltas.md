@@ -57,6 +57,11 @@ notes: <freeform>
 - entry-review verdict = `PASS` (explicit; defaults are NOT merge-permissive)
 - PR diff is strictly additions/modifications under `entries/<id>.yaml`
   for an id the submitter owns (or a brand-new id)
+- PR is from the same repo (fork PRs lack the GITHUB_TOKEN scope to merge)
+
+slow-compliance runs as an informational signal (`continue-on-error: true`)
+— its failure does not block auto-merge. Most real cubes need
+Docker/VM/large-disk environments that don't fit `provider: local`.
 
 **On `CONCERN`**: post review as PR comment, apply `human-review-needed`,
 do NOT merge.
@@ -76,7 +81,9 @@ checks (separate jobs).
 
 > 6. Entries auto-merge iff (ownership-check ∧ quick-compliance ∧
 >    entry-review verdict=PASS) AND the diff is strictly
->    additions/modifications under `entries/<id>.yaml`. Any deviation
+>    additions/modifications under `entries/<id>.yaml` AND the PR is from
+>    the same repo. slow-compliance is informational
+>    (`continue-on-error`); its failure does not block. Any deviation
 >    falls back to `ready-for-review` + manual merge.
 
 ## `openspec/specs/entry/spec.md`
