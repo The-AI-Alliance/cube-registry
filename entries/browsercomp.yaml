@@ -1,0 +1,37 @@
+id: browsercomp
+name: "BrowseComp"
+version: "0.1.0"
+description: >
+  BrowseComp ported to the CUBE protocol — 1,266 hard, hand-curated
+  web-information-retrieval questions that require multi-step browsing
+  to answer. Each question is designed to be "easy to verify, hard to
+  find"; the agent's answer is judged by an LLM against the reference
+  (the entry's `scorer_model` is required at construction). Tasks span
+  nine topical subsets: art, geography, history, music, other,
+  politics, science-and-technology, sports, and tv-shows-and-movies.
+  Released by OpenAI in April 2025; this cube wraps the upstream
+  dataset behind a CUBE-standard browser tool surface.
+package: browsercomp-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/browsercomp"
+
+authors:
+  - github: younik
+    name: Omar Younis
+  - github: NicolasAG
+    name: Nicolas Gontier
+  - github: recursix
+    name: Alexandre Lacoste
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: MIT
+    source_url: "https://github.com/openai/simple-evals/blob/main/LICENSE"
+
+paper: "https://arxiv.org/abs/2504.12516"
+getting_started_url: "https://openai.com/index/browsecomp/"
+tags:
+- web
+- browser
+- reasoning
+- nlp
