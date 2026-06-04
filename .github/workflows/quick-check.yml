@@ -244,6 +244,10 @@ jobs:
         run: |
           set -e
           while IFS= read -r entry_file; do
+            # GHA encodes multi-line job-output values with `\<newline>` line
+            # continuations. Strip the trailing backslash so the path
+            # actually points to a real file.
+            entry_file="${entry_file%\\}"
             [ -z "$entry_file" ] && continue
             [ ! -f "$entry_file" ] && continue
             echo "=========================================="
@@ -305,6 +309,12 @@ jobs:
           ANY_UNKNOWN=false
           : > /tmp/entry-review-comment.md
           while IFS= read -r entry_file; do
+            # GHA encodes multi-line job-output values with `\<newline>` line
+            # continuations. Strip the trailing backslash so the path
+            # actually points to a real file. (Without this, only the LAST
+            # entry — which has no trailing newline-and-backslash — gets
+            # reviewed; previous entries silently skip the `-f` check.)
+            entry_file="${entry_file%\\}"
             [ -z "$entry_file" ] && continue
             [ ! -f "$entry_file" ] && continue
             python scripts/entry_review.py \
