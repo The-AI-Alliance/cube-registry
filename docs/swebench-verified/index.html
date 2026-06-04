@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WorkArena — CUBE Registry</title>
-  <meta name="description" content="WorkArena evaluates agents on enterprise service-desk workflows inside a real ServiceNow Personal Developer Instance. Tasks are organized into three levels: L1 atomic tasks (~33 unique tasks x multipl…" />
+  <title>SWE-bench Verified — CUBE Registry</title>
+  <meta name="description" content="SWE-bench Verified ported to the CUBE protocol — 500 human-validated GitHub issues with test-based resolution criteria. Princeton + OpenAI's curated subset of the broader SWE-bench dataset where every…" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
@@ -26,11 +26,11 @@
       CUBE Registry
     </a>
     <span class="text-gray-300">/</span>
-    <span class="text-gray-700 font-medium">WorkArena</span>
+    <span class="text-gray-700 font-medium">SWE-bench Verified</span>
 
     <!-- Status badge -->
-    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">
-      Degraded
+    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-800">
+      Active
     </span>
   </div>
 </header>
@@ -41,15 +41,20 @@
   <section>
     <div class="flex items-start gap-4 flex-wrap">
       <div class="flex-1 min-w-0">
-        <h1 class="text-3xl font-extrabold text-gray-900">WorkArena</h1>
-        <p class="text-sm text-gray-400 mt-1 font-mono">workarena · v1.0.0</p>
+        <h1 class="text-3xl font-extrabold text-gray-900">SWE-bench Verified</h1>
+        <p class="text-sm text-gray-400 mt-1 font-mono">swebench-verified · v0.1.0</p>
       </div>
       
-      <a href="https://arxiv.org/abs/2402.05181" target="_blank" rel="noopener"
+      <a href="https://arxiv.org/abs/2310.06770" target="_blank" rel="noopener"
          class="flex-shrink-0 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium">
         📄 Paper
       </a>
       
+      
+      <a href="https://openai.com/index/introducing-swe-bench-verified/" target="_blank" rel="noopener"
+         class="flex-shrink-0 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-medium">
+        📖 Getting Started
+      </a>
       
     </div>
 
@@ -57,15 +62,13 @@
     
     <div class="flex flex-wrap gap-2 mt-3">
       
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800">web</span>
-      
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800">gui</span>
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800">coding</span>
       
     </div>
     
 
     <!-- Description -->
-    <p class="mt-4 text-gray-700 leading-relaxed">WorkArena evaluates agents on enterprise service-desk workflows inside a real ServiceNow Personal Developer Instance. Tasks are organized into three levels: L1 atomic tasks (~33 unique tasks x multiple seeds), L2 compositional tasks, and L3 extended tasks with company protocols. Requires a free ServiceNow PDI and browser-automation tooling.
+    <p class="mt-4 text-gray-700 leading-relaxed">SWE-bench Verified ported to the CUBE protocol — 500 human-validated GitHub issues with test-based resolution criteria. Princeton + OpenAI's curated subset of the broader SWE-bench dataset where every task was manually checked for an unambiguous problem statement and a reliable test-based reward signal. The agent receives the problem statement + a git checkout at the base commit and must produce a patch that makes the upstream fail_to_pass tests pass without breaking pass_to_pass.
 </p>
 
     <!-- Authors -->
@@ -74,12 +77,16 @@
     <p class="mt-3 text-sm text-gray-500">
       By:
       
-        <a href="https://github.com/younik" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
-          @younik (Omar Younis)
-        </a>, 
-      
         <a href="https://github.com/NicolasAG" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
           @NicolasAG (Nicolas Gontier)
+        </a>, 
+      
+        <a href="https://github.com/recursix" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @recursix (Alexandre Lacoste)
+        </a>, 
+      
+        <a href="https://github.com/josancamon19" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @josancamon19 (Joan Cabezas)
         </a>
       
     </p>
@@ -90,7 +97,7 @@
   <section class="bg-gray-900 rounded-xl p-5">
     <p class="text-gray-400 text-sm mb-2 font-medium uppercase tracking-wider">Install</p>
     <div class="flex items-center gap-3">
-      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install workarena-cube</code>
+      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install swebench-verified-cube</code>
       <button
         class="copy-btn bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
         onclick="copyPipInstall()"
@@ -98,8 +105,8 @@
       >Copy</button>
     </div>
     <p class="text-gray-500 text-xs mt-2">
-      Version: 1.0.0 ·
-      <a href="https://pypi.org/project/workarena-cube/1.0.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
+      Version: 0.1.0 ·
+      <a href="https://pypi.org/project/swebench-verified-cube/0.1.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
     </p>
   </section>
 
@@ -107,7 +114,7 @@
   <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        333
+        500
       </div>
       <div class="text-xs text-gray-500 mt-1">Tasks</div>
     </div>
@@ -193,12 +200,12 @@
       <div class="flex gap-3 items-start">
         <span class="text-gray-500 w-40 flex-shrink-0">Benchmark license</span>
         <div>
-          <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
+          <span class="font-mono font-medium text-gray-800">MIT</span>
           
           <span class="ml-2 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium border border-yellow-200">Self-reported — verify before commercial use</span>
           
           
-          <a href="https://github.com/ServiceNow/WorkArena/blob/main/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
+          <a href="https://github.com/SWE-bench/SWE-bench/blob/main/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
           
         </div>
       </div>
@@ -206,21 +213,6 @@
 
       <!-- Notices -->
       
-      
-      <div>
-        <p class="text-gray-500 mb-2">Notices</p>
-        <div class="space-y-2">
-          
-          <div class="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-            <span class="text-xs font-medium text-orange-700 font-mono">Software Registration</span>
-            <p class="text-gray-700 text-sm mt-0.5">Requires a free ServiceNow Personal Developer Instance (PDI). Register at developer.servicenow.com</p>
-            
-            <a href="https://developer.servicenow.com" class="text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">More info →</a>
-            
-          </div>
-          
-        </div>
-      </div>
       
     </div>
 
@@ -269,19 +261,6 @@
 
   <!-- ── Parallelization info ──────────────────────────────────────────── -->
   
-  <section class="bg-white rounded-xl border border-gray-200 p-5">
-    <h2 class="text-lg font-bold mb-3">Parallelization</h2>
-    <div class="flex gap-8 text-sm">
-      
-      <div>
-        <span class="text-gray-500 text-xs uppercase tracking-wider">Mode</span>
-        <p class="font-mono font-medium text-gray-800 mt-1">task-parallel</p>
-      </div>
-      
-      
-    </div>
-  </section>
-  
 
   <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
   <section class="rounded-xl border border-gray-200 overflow-hidden">
@@ -289,7 +268,7 @@
       <h2 class="text-sm font-semibold text-gray-200 tracking-wide uppercase">Registry Entry (YAML)</h2>
       <div class="flex items-center gap-3">
         
-        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/workarena.yaml" target="_blank" rel="noopener"
+        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/swebench-verified.yaml" target="_blank" rel="noopener"
            class="text-xs text-gray-400 hover:text-indigo-300 underline">View on GitHub →</a>
         
         <button
@@ -298,48 +277,44 @@
       </div>
     </div>
     <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
-      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: workarena
-name: "WorkArena"
-version: "1.0.0"
+      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: swebench-verified
+name: "SWE-bench Verified"
+version: "0.1.0"
 description: >
-  WorkArena evaluates agents on enterprise service-desk workflows inside a
-  real ServiceNow Personal Developer Instance. Tasks are organized into three
-  levels: L1 atomic tasks (~33 unique tasks x multiple seeds), L2
-  compositional tasks, and L3 extended tasks with company protocols. Requires
-  a free ServiceNow PDI and browser-automation tooling.
-package: workarena-cube
-dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/workarena"
+  SWE-bench Verified ported to the CUBE protocol — 500 human-validated
+  GitHub issues with test-based resolution criteria. Princeton + OpenAI's
+  curated subset of the broader SWE-bench dataset where every task was
+  manually checked for an unambiguous problem statement and a reliable
+  test-based reward signal. The agent receives the problem statement +
+  a git checkout at the base commit and must produce a patch that makes
+  the upstream fail_to_pass tests pass without breaking pass_to_pass.
+package: swebench-verified-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/swebench-verified-cube"
 
 authors:
-- github: younik
-  name: Omar Younis
 - github: NicolasAG
   name: Nicolas Gontier
+- github: recursix
+  name: Alexandre Lacoste
+- github: josancamon19
+  name: Joan Cabezas
 
 legal:
   wrapper_license: MIT
   benchmark_license:
-    reported: Apache-2.0
-    source_url: "https://github.com/ServiceNow/WorkArena/blob/main/LICENSE"
+    reported: MIT
+    source_url: "https://github.com/SWE-bench/SWE-bench/blob/main/LICENSE"
     verified_by_original_authors: false
-  notices:
-  - type: software_registration
-    description: "Requires a free ServiceNow Personal Developer Instance (PDI). Register
-      at developer.servicenow.com"
-    url: "https://developer.servicenow.com"
 
+paper: "https://arxiv.org/abs/2310.06770"
+getting_started_url: "https://openai.com/index/introducing-swe-bench-verified/"
 tags:
-- web
-- gui
-
-paper: "https://arxiv.org/abs/2402.05181"
-parallelization_mode: task-parallel
-
-status: degraded
-task_count: 333
+- coding
+status: active
+resources: []
+task_count: 500
 has_debug_task: true
 has_debug_agent: true
-resources: []
 action_space: []
 features:
   async: false
