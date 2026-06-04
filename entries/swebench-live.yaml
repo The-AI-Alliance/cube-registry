@@ -1,0 +1,46 @@
+id: swebench-live
+name: "SWE-bench Live"
+version: "0.1.0"
+description: >
+  SWE-bench Live ported to the CUBE protocol — 1,895 continuously-updated,
+  contamination-resistant GitHub issue resolution tasks across many
+  open-source repositories. Each task pairs a real issue with its merged
+  fix; the agent receives the problem statement plus a git checkout at the
+  base commit and must produce a patch that makes the upstream
+  fail_to_pass tests pass without breaking pass_to_pass. The task pool
+  is refreshed continuously, making the benchmark useful for testing
+  contamination resistance.
+package: swebench-live-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/swebench-live-cube"
+
+authors:
+- github: NicolasAG
+  name: Nicolas Gontier
+- github: recursix
+  name: Alexandre Lacoste
+- github: josancamon19
+  name: Joan Cabezas
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: MIT
+    source_url: "https://github.com/microsoft/SWE-bench-Live/blob/main/LICENSE"
+    verified_by_original_authors: false
+
+paper: "https://arxiv.org/abs/2505.23419"
+getting_started_url: "https://swe-bench-live.github.io/"
+tags:
+- coding
+- science
+status: active
+resources: []
+task_count: 1895
+has_debug_task: true
+has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false

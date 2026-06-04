@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import importlib.metadata  # explicit so importlib.metadata.entry_points works on Python ≥ 3.10
 import inspect
 import json
 import re

@@ -1,0 +1,44 @@
+id: swebench-verified
+name: "SWE-bench Verified"
+version: "0.1.0"
+description: >
+  SWE-bench Verified ported to the CUBE protocol — 500 human-validated
+  GitHub issues with test-based resolution criteria. Princeton + OpenAI's
+  curated subset of the broader SWE-bench dataset where every task was
+  manually checked for an unambiguous problem statement and a reliable
+  test-based reward signal. The agent receives the problem statement +
+  a git checkout at the base commit and must produce a patch that makes
+  the upstream fail_to_pass tests pass without breaking pass_to_pass.
+package: swebench-verified-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/swebench-verified-cube"
+
+authors:
+- github: NicolasAG
+  name: Nicolas Gontier
+- github: recursix
+  name: Alexandre Lacoste
+- github: josancamon19
+  name: Joan Cabezas
+
+legal:
+  wrapper_license: MIT
+  benchmark_license:
+    reported: MIT
+    source_url: "https://github.com/SWE-bench/SWE-bench/blob/main/LICENSE"
+    verified_by_original_authors: false
+
+paper: "https://arxiv.org/abs/2310.06770"
+getting_started_url: "https://openai.com/index/introducing-swe-bench-verified/"
+tags:
+- coding
+status: active
+resources: []
+task_count: 500
+has_debug_task: true
+has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false

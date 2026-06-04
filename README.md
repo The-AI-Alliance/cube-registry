@@ -51,7 +51,16 @@ This generates the entry YAML from your `pyproject.toml`, forks this repo, commi
 2. Create `entries/<your-benchmark-id>.yaml` (see template below)
 3. Open a pull request
 
-Either way, CI validates the entry and auto-merges if it passes. No human review needed.
+Either way, CI runs three hard gates (ownership, quick-compliance, LLM
+semantic review) plus an informational slow-compliance signal. If the hard
+gates pass and the PR diff is strictly under `entries/<id>.yaml`, the PR
+auto-merges. If the LLM flags a `CONCERN`, the PR is labeled
+`ready-for-review` and a maintainer finishes the merge.
+
+Fork PRs and PRs that touch paths outside `entries/` always fall back to
+maintainer-merge. See
+[openspec/specs/ci/spec.md](openspec/specs/ci/spec.md) for the full pipeline
+contract.
 
 ### Entry template
 
@@ -89,22 +98,34 @@ Fields populated automatically by CI (do not fill):
 
 ### Updating your entry
 
-Open a PR modifying your existing YAML. CI verifies you are a registered author
-(via `OWNERS.yaml`) and auto-merges if checks pass.
+Open a PR modifying your existing YAML. CI verifies you are a registered
+author (via `OWNERS.yaml`) and runs the same four gates as a new submission.
+On all gates green, the PR auto-merges.
 
 ---
 
 ## Compliance checks
 
-Every submission goes through two tiers:
+Every submission goes through four pre-merge gates and one post-merge gate:
 
-| Tier | When | What | Cost |
+| Gate | When | What | Hard gate? |
 |---|---|---|---|
-| Quick check | On PR (~2 min) | Schema, PyPI install, API introspection | Free |
-| Slow check | Post-merge (async) | Full debug episode on real infra | ~$0.05/VM cube |
+| ownership-check | On PR (~10s) | Submitter is in `OWNERS.yaml` for the entry (or it's new) | Yes |
+| quick-compliance | On PR (~2 min) | Schema, PyPI install, API introspection — hardened Docker sandbox, no credentials | Yes |
+| slow-compliance | On PR (~5 min) | Debug task with `provider=local` on the GHA runner | **No** — informational |
+| entry-review | On PR (~1 min) | LLM semantic check — verdict `PASS` or `CONCERN` | Yes |
+| slow-check (cloud) | Post-merge (async, ~5–30 min) | Full stress run on cloud VMs across `supported_infra`; writes `stress-results/` | Post-merge canonical |
 
-A slow check failure opens a GitHub issue tagging the entry authors.
-Entries remain in the registry regardless — platforms decide which tier they require.
+Pre-merge slow-compliance is informational: most real cubes need
+Docker/VM/large-disk environments that don't fit on a GHA runner, so
+hard-gating there would exclude almost every real benchmark from auto-merge.
+Failure surfaces as a red check (useful signal for cubes that *do* support
+`local`) but doesn't block. The post-merge slow-check on cloud VMs is the
+canonical execution gate.
+
+Hard-gate failures → check shows red on the PR; submitter pushes a fix.
+Post-merge slow-check failing → opens a GitHub issue tagging the entry authors;
+entry remains in the registry with `status: degraded` until fixed.
 
 ---
 
