@@ -33,7 +33,7 @@ getting_started_url: "https://swe-bench-live.github.io/"
 tags:
 - coding
 - science
-status: active
+status: degraded
 resources: []
 task_count: 1895
 has_debug_task: true

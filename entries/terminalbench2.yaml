@@ -28,7 +28,7 @@ getting_started_url: "https://github.com/harbor-framework/terminal-bench-2"
 tags:
 - coding
 - os
-status: active
+status: degraded
 resources: []
 task_count: 89
 has_debug_task: true

@@ -31,7 +31,7 @@ paper: "https://arxiv.org/abs/2310.06770"
 getting_started_url: "https://openai.com/index/introducing-swe-bench-verified/"
 tags:
 - coding
-status: active
+status: degraded
 resources: []
 task_count: 500
 has_debug_task: true
