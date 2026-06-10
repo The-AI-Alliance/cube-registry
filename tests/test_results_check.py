@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import gzip
+import hashlib
 import json
 import shutil
 import sys
@@ -31,10 +33,12 @@ def staged_repo(tmp_path, monkeypatch) -> Path:
     """A fake repo with entries/, results/ and the real schema. Patches rc's path constants."""
     (tmp_path / "entries").mkdir()
     (tmp_path / "results").mkdir()
-    # Copy the real schema so we exercise the actual constraints.
+    # Copy the real schemas so we exercise the actual constraints.
     shutil.copy(rc.SCHEMA_PATH, tmp_path / "results-schema.json")
+    shutil.copy(rc.SAMPLES_SCHEMA_PATH, tmp_path / "samples-schema.json")
     monkeypatch.setattr(rc, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(rc, "SCHEMA_PATH", tmp_path / "results-schema.json")
+    monkeypatch.setattr(rc, "SAMPLES_SCHEMA_PATH", tmp_path / "samples-schema.json")
     monkeypatch.setattr(rc, "ENTRIES_DIR", tmp_path / "entries")
     monkeypatch.setattr(rc, "RESULTS_DIR", tmp_path / "results")
     return tmp_path
@@ -245,3 +249,155 @@ class TestFileSize:
         path = _write_result(staged_repo, valid_record, "miniwob")
         failures = rc.check_file(path, schema)
         assert any("size" in f for f in failures)
+
+
+@pytest.fixture
+def samples_schema() -> dict:
+    return rc._load_samples_schema()
+
+
+def _bundle_bytes(scores: list[float]) -> bytes:
+    lines = [
+        json.dumps({"sample_id": f"t{i}", "score": s}, sort_keys=True) for i, s in enumerate(scores)
+    ]
+    raw = ("\n".join(lines) + "\n").encode("utf-8") if lines else b""
+    return gzip.compress(raw, mtime=0)
+
+
+def _attach_bundle(
+    repo: Path,
+    record: dict,
+    cube_id: str,
+    scores: list[float],
+    *,
+    bundle: bytes | None = None,
+    sha_override: str | None = None,
+    file_override: str | None = None,
+    n_override: int | None = None,
+) -> Path:
+    """Write a summary made consistent with *scores* + its companion bundle.
+
+    Returns the summary path. Overrides let a test inject a mismatch (wrong sha,
+    wrong filename, wrong count, tampered bytes)."""
+    n = len(scores)
+    record["benchmark_name"] = cube_id
+    record["benchmark_subset"]["n_tasks"] = n
+    record["results"]["avg_score"] = round(sum(scores) / n, 6) if n else 0.0
+    record["results"]["outcomes"] = {
+        "n_success": sum(1 for s in scores if s > 0),
+        "n_failure": sum(1 for s in scores if s == 0),
+        "n_max_steps": 0,
+        "n_system_error": 0,
+        "n_missing": 0,
+    }
+    summary_path = _write_result(repo, record, cube_id)
+    data = bundle if bundle is not None else _bundle_bytes(scores)
+    bname = file_override or (summary_path.stem + rc.BUNDLE_SUFFIX)
+    (summary_path.parent / bname).write_bytes(data)
+    record["detailed_results"] = {
+        "file": bname,
+        "format": "jsonl.gz",
+        "sha256": sha_override or hashlib.sha256(data).hexdigest(),
+        "n_samples": n if n_override is None else n_override,
+    }
+    summary_path.write_text(json.dumps(record))
+    return summary_path
+
+
+class TestDetailedResults:
+    def test_valid_bundle_passes(self, staged_repo, valid_record, schema, samples_schema):
+        _write_entry(staged_repo, "miniwob")
+        path = _attach_bundle(staged_repo, valid_record, "miniwob", [1.0, 0.0, 1.0])
+        assert rc.check_file(path, schema, samples_schema=samples_schema) == []
+
+    def test_sha256_mismatch_rejected(self, staged_repo, valid_record, schema, samples_schema):
+        _write_entry(staged_repo, "miniwob")
+        path = _attach_bundle(
+            staged_repo, valid_record, "miniwob", [1.0, 0.0], sha_override="0" * 64
+        )
+        failures = rc.check_file(path, schema, samples_schema=samples_schema)
+        assert any("sha256" in f for f in failures)
+
+    def test_tampered_bytes_change_the_hash(
+        self, staged_repo, valid_record, schema, samples_schema
+    ):
+        _write_entry(staged_repo, "miniwob")
+        # Bundle bytes whose recorded sha is of the *clean* bytes → mismatch.
+        clean = _bundle_bytes([1.0, 0.0])
+        tampered = _bundle_bytes([1.0, 1.0])
+        path = _attach_bundle(
+            staged_repo,
+            valid_record,
+            "miniwob",
+            [1.0, 0.0],
+            bundle=tampered,
+            sha_override=hashlib.sha256(clean).hexdigest(),
+        )
+        assert any(
+            "sha256" in f for f in rc.check_file(path, schema, samples_schema=samples_schema)
+        )
+
+    def test_inconsistent_avg_score_rejected(
+        self, staged_repo, valid_record, schema, samples_schema
+    ):
+        _write_entry(staged_repo, "miniwob")
+        path = _attach_bundle(staged_repo, valid_record, "miniwob", [1.0, 0.0])
+        # Lie about the headline after the bundle was built consistently.
+        record = json.loads(path.read_text())
+        record["results"]["avg_score"] = 0.99
+        path.write_text(json.dumps(record))
+        failures = rc.check_file(path, schema, samples_schema=samples_schema)
+        assert any("not consistent with the bundle" in f for f in failures)
+
+    def test_wrong_n_samples_rejected(self, staged_repo, valid_record, schema, samples_schema):
+        _write_entry(staged_repo, "miniwob")
+        path = _attach_bundle(staged_repo, valid_record, "miniwob", [1.0, 0.0, 1.0], n_override=99)
+        assert any(
+            "n_samples" in f for f in rc.check_file(path, schema, samples_schema=samples_schema)
+        )
+
+    def test_bundle_filename_must_share_stem(
+        self, staged_repo, valid_record, schema, samples_schema
+    ):
+        _write_entry(staged_repo, "miniwob")
+        path = _attach_bundle(
+            staged_repo, valid_record, "miniwob", [1.0], file_override="other.samples.jsonl.gz"
+        )
+        assert any(
+            "share the record's stem" in f
+            for f in rc.check_file(path, schema, samples_schema=samples_schema)
+        )
+
+    def test_missing_bundle_rejected(self, staged_repo, valid_record, schema, samples_schema):
+        _write_entry(staged_repo, "miniwob")
+        path = _attach_bundle(staged_repo, valid_record, "miniwob", [1.0, 0.0])
+        (path.parent / json.loads(path.read_text())["detailed_results"]["file"]).unlink()
+        assert any(
+            "not present next to the record" in f
+            for f in rc.check_file(path, schema, samples_schema=samples_schema)
+        )
+
+    def test_bad_sample_row_rejected(self, staged_repo, valid_record, schema, samples_schema):
+        _write_entry(staged_repo, "miniwob")
+        # A row missing the required `score` → samples-schema violation.
+        bad = gzip.compress((json.dumps({"sample_id": "t0"}) + "\n").encode(), mtime=0)
+        path = _attach_bundle(staged_repo, valid_record, "miniwob", [1.0], bundle=bad, n_override=1)
+        failures = rc.check_file(path, schema, samples_schema=samples_schema)
+        assert any("score" in f and "line 1" in f for f in failures)
+
+    def test_oversized_bundle_rejected(
+        self, staged_repo, valid_record, schema, samples_schema, monkeypatch
+    ):
+        _write_entry(staged_repo, "miniwob")
+        monkeypatch.setattr(rc, "MAX_BUNDLE_SIZE_BYTES", 10)  # tiny cap
+        path = _attach_bundle(staged_repo, valid_record, "miniwob", [1.0, 0.0, 1.0])
+        assert any(
+            "over the" in f and "cap" in f
+            for f in rc.check_file(path, schema, samples_schema=samples_schema)
+        )
+
+    def test_aggregate_only_still_allowed(self, staged_repo, valid_record, schema, samples_schema):
+        # No detailed_results → backward compatible.
+        _write_entry(staged_repo, "miniwob")
+        path = _write_result(staged_repo, valid_record, "miniwob")
+        assert rc.check_file(path, schema, samples_schema=samples_schema) == []

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/The-AI-Alliance/cube-registry/samples-schema.json",
+  "title": "CUBE Registry Per-Task Sample",
+  "description": "Schema for ONE line of a results/<cube-id>/<id>.samples.jsonl.gz bundle: one row per task/episode, eval-level only (no trajectory blobs). Intentionally lenient (additionalProperties: true) so the producing harness can carry extra eval fields without breaking submission — the registry pins only the fields it verifies. `score` is the one the consistency check averages to re-derive the summary's results.avg_score.",
+  "type": "object",
+  "required": ["sample_id", "score"],
+  "additionalProperties": true,
+  "properties": {
+    "sample_id": {"type": "string", "description": "Task / sample identifier."},
+    "score": {"type": ["number", "null"], "description": "Per-task score. The verifier averages the non-null scores to re-derive results.avg_score."},
+    "is_correct": {"type": ["boolean", "null"]},
+    "error": {"type": ["string", "null"]},
+    "num_turns": {"type": ["integer", "null"], "minimum": 0},
+    "n_agent_steps": {"type": ["integer", "null"], "minimum": 0},
+    "n_env_steps": {"type": ["integer", "null"], "minimum": 0},
+    "wall_time_s": {"type": ["number", "null"], "minimum": 0}
+  }
+}
