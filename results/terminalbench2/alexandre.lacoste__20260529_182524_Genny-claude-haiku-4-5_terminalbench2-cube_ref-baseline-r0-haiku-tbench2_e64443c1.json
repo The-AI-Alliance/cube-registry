@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "evaluation_id": "alexandre.lacoste/20260529_182524_Genny-claude-haiku-4-5_terminalbench2-cube_ref-baseline-r0-haiku-tbench2_e64443c1",
+  "evaluation_timestamp": 1780136420.095314,
+  "eval_library": {
+    "name": "cube-harness",
+    "version": "0.1.0"
+  },
+  "agent": {
+    "agent_id": "87d83fcf6048af5cc2bc6df8c6969317a7210bea0d2d40fdf176518816e37a61",
+    "config_type": "cube_harness.agents.genny.GennyConfig",
+    "llm_model": "claude-haiku-4-5",
+    "framework_version": "0.1.0",
+    "git_commit": "8830467ea7edcb8f9b1972f9f552b704a8f9ab22",
+    "dependency_versions": {
+      "cube-harness": "0.1.0",
+      "litellm": "1.80.17",
+      "openai": "2.33.0",
+      "browsergym-core": "0.14.3",
+      "playwright": "1.44.0",
+      "pydantic": "2.12.3",
+      "ray": "2.55.1"
+    },
+    "git_remote_url": "https://github.com/The-AI-Alliance/cube-harness/tree/8830467ea7edcb8f9b1972f9f552b704a8f9ab22",
+    "git_is_dirty": false,
+    "cube_standard_git_commit": "c72dfebbc352e80f217ad93c254e3bce2055d595",
+    "cube_standard_git_is_dirty": false,
+    "config": {
+      "description_overrides": {},
+      "llm_config": {
+        "model_name": "claude-haiku-4-5",
+        "temperature": 1.0,
+        "max_tokens": 128000,
+        "max_completion_tokens": 8192,
+        "reasoning_effort": "low",
+        "interleaved_thinking": true,
+        "tool_choice": "auto",
+        "parallel_tool_calls": false,
+        "num_retries": 5,
+        "retry_strategy": "exponential_backoff_retry",
+        "timeout": 120.0,
+        "set_cache_control": null,
+        "_type": "cube_harness.llm.LLMConfig"
+      },
+      "system_prompt": "You are a helpful assistant that can interact with a computer shell to solve programming tasks. If an action seems to have no apparent effect, avoid retrying it.",
+      "react_prompt": "Review the latest observation and produce the next action.\nThink step by step:\n1. What does the observation show?\n2. Did the last action have the intended effect? If the page state is unchanged or the action failed, do NOT repeat it \u2014 try a different element, method, or approach.\n3. What is the best next action?\nThen call the appropriate function.",
+      "act_prompt": "Based on the reasoning above, call the appropriate function to perform the next action.",
+      "step_prompt": "",
+      "goal_template": "{{task}}\n\nSuggested approach:\n1. Reproduce: confirm the current behavior \u2014 run the relevant test or command to observe the issue.\n2. Explore: read the relevant source files directly with `cat`, `grep`, or `find` to locate the root cause.\n3. Fix: apply the minimal change needed to resolve the issue.\n4. Verify: run the relevant test or command to confirm the fix works and nothing else broke. If it does not, make a focused adjustment and try again.",
+      "flat_history": true,
+      "enable_summarize": false,
+      "summarize_llm_config": null,
+      "summarize_prompt": "Summarize the latest observation concisely. Include:\n- What was observed (key changes, current state, errors)\n- Progress toward the goal\n\nThen add a '## Key Facts' section with durable facts worth preserving across compactions.\n\nRespond with text only \u2014 do not call any tools or functions.",
+      "hint": "",
+      "task_hints": {},
+      "task_clarification": {},
+      "benchmark_hint_prompt": null,
+      "obs_format": "raw",
+      "compact_threshold_chars": null,
+      "compact_prompt": "Summarize the conversation history above. Include:\n- Key actions taken and their results\n- Important findings about the codebase\n- Current state and what has been accomplished so far\nBe concise but preserve all information needed to continue the task.\nRespond with text only \u2014 do not call any tools.",
+      "max_obs_chars": null,
+      "budget": {
+        "max_actions": 100,
+        "cost_limit": 0.5,
+        "token_limit": null,
+        "display_every_k": 5,
+        "_type": "cube_harness.agents.genny.BudgetConfig"
+      },
+      "max_format_errors": 3,
+      "_type": "cube_harness.agents.genny.GennyConfig"
+    }
+  },
+  "benchmark_name": "terminalbench2",
+  "benchmark_version": "0.1.0",
+  "benchmark_subset": {
+    "name": "terminalbench2-cube",
+    "n_tasks": 89
+  },
+  "results": {
+    "avg_score": 0.195402,
+    "std_err": 0.042757,
+    "total_cost_usd": 33.983302,
+    "outcomes": {
+      "n_success": 17,
+      "n_failure": 70,
+      "n_max_steps": 0,
+      "n_system_error": 2,
+      "n_missing": 0
+    },
+    "avg_wall_time_s": 864.05,
+    "max_steps_per_episode": 100
+  },
+  "detailed_results": {
+    "file": "alexandre.lacoste__20260529_182524_Genny-claude-haiku-4-5_terminalbench2-cube_ref-baseline-r0-haiku-tbench2_e64443c1.samples.jsonl.gz",
+    "format": "jsonl.gz",
+    "sha256": "2e2555f9b28795abdd1fad647c0b0cfca9b31ae954aa3bf61346b9ab1c0b9707",
+    "n_samples": 87
+  }
+}
