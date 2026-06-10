@@ -224,6 +224,8 @@
       <h2 class="text-lg font-bold">
         Reproducibility journal
         
+        <span class="ml-2 text-xs font-normal text-gray-400">1 submission</span>
+        
       </h2>
       <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/README.md#submitting-a-result"
          class="text-xs text-indigo-600 hover:underline">How to submit →</a>
@@ -242,9 +244,433 @@
     </div>
 
     
-    <p class="text-sm text-gray-400 text-center py-6">
-      No submissions yet. Be the first — see <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/README.md#submitting-a-result" class="text-indigo-600 hover:underline">how to submit</a>.
+    <!-- Grid.js mount point + selection toolbar -->
+    <div id="results-grid-toolbar" class="mb-3 flex items-center gap-3 text-xs text-gray-500">
+      <span id="results-selected-count">No rows selected</span>
+      <button id="results-compare-btn"
+              class="hidden rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              disabled>
+        Compare selected →
+      </button>
+      <button id="results-clear-btn"
+              class="hidden text-xs text-gray-500 hover:text-gray-700 underline">
+        Clear
+      </button>
+    </div>
+    <div id="results-grid"></div>
+    <p class="mt-3 text-xs text-gray-400">
+      <span class="text-green-700">✓</span> success ·
+      <span class="text-red-700">✗</span> failure ·
+      <span class="text-yellow-700">⏱</span> max-steps ·
+      <span class="text-purple-700">💥</span> system error ·
+      <span class="text-gray-500">–</span> missing
+      · sort by clicking column headers · check 2+ rows to compare side-by-side
     </p>
+
+    <!-- Embedded result data — read by the Grid.js + compare modal scripts below. -->
+    <script id="results-data" type="application/json">[{"schema_version":"1.0","evaluation_id":"alexandre.lacoste/20260603_114932_Genny-azure_gpt-5.4-mini_terminalbench2-cube_ref-baseline-r0-mini-tbench2_215cc0e7","evaluation_timestamp":1780532732.084825,"eval_library":{"name":"cube-harness","version":"0.1.0"},"agent":{"agent_id":"60de878d29bd788e1353b56a83e5f306f347b34666b7c64a9bec7136a0786ab1","config_type":"cube_harness.agents.genny.GennyConfig","llm_model":"azure/gpt-5.4-mini","framework_version":"0.1.0","git_commit":"a98cdcd822b670390ebc3fd892dc072af39d1413","dependency_versions":{"cube-harness":"0.1.0","litellm":"1.80.17","openai":"2.33.0","browsergym-core":"0.14.3","playwright":"1.44.0","pydantic":"2.12.3","ray":"2.55.1"},"git_remote_url":"https://github.com/The-AI-Alliance/cube-harness/tree/a98cdcd822b670390ebc3fd892dc072af39d1413","git_is_dirty":false,"cube_standard_git_commit":"24e26412b2bec112f7ee581eab71e3c522af7188","cube_standard_git_is_dirty":false,"config":{"description_overrides":{},"llm_config":{"model_name":"azure/gpt-5.4-mini","temperature":1.0,"max_tokens":128000,"max_completion_tokens":8192,"reasoning_effort":"low","interleaved_thinking":false,"tool_choice":"auto","parallel_tool_calls":false,"num_retries":5,"retry_strategy":"exponential_backoff_retry","timeout":120.0,"set_cache_control":null,"_type":"cube_harness.llm.LLMConfig"},"system_prompt":"You are a helpful assistant that can interact with a computer shell to solve programming tasks. If an action seems to have no apparent effect, avoid retrying it.","react_prompt":"Review the latest observation and produce the next action.\nThink step by step:\n1. What does the observation show?\n2. Did the last action have the intended effect? If the page state is unchanged or the action failed, do NOT repeat it \u2014 try a different element, method, or approach.\n3. What is the best next action?\nThen call the appropriate function.","act_prompt":"Based on the reasoning above, call the appropriate function to perform the next action.","step_prompt":"","goal_template":"{{task}}\n\nSuggested approach:\n1. Reproduce: confirm the current behavior \u2014 run the relevant test or command to observe the issue.\n2. Explore: read the relevant source files directly with `cat`, `grep`, or `find` to locate the root cause.\n3. Fix: apply the minimal change needed to resolve the issue.\n4. Verify: run the relevant test or command to confirm the fix works and nothing else broke. If it does not, make a focused adjustment and try again.","flat_history":true,"enable_summarize":false,"summarize_llm_config":null,"summarize_prompt":"Summarize the latest observation concisely. Include:\n- What was observed (key changes, current state, errors)\n- Progress toward the goal\n\nThen add a '## Key Facts' section with durable facts worth preserving across compactions.\n\nRespond with text only \u2014 do not call any tools or functions.","hint":"","task_hints":{},"task_clarification":{},"benchmark_hint_prompt":null,"obs_format":"raw","compact_threshold_chars":null,"compact_prompt":"Summarize the conversation history above. Include:\n- Key actions taken and their results\n- Important findings about the codebase\n- Current state and what has been accomplished so far\nBe concise but preserve all information needed to continue the task.\nRespond with text only \u2014 do not call any tools.","max_obs_chars":null,"budget":{"max_actions":100,"cost_limit":0.5,"token_limit":null,"display_every_k":5,"_type":"cube_harness.agents.genny.BudgetConfig"},"max_format_errors":3,"_type":"cube_harness.agents.genny.GennyConfig"}},"benchmark_name":"terminalbench2","benchmark_version":"0.1.0","benchmark_subset":{"name":"terminalbench2-cube","n_tasks":89},"results":{"avg_score":0.341176,"std_err":0.051729,"total_cost_usd":7.291417,"outcomes":{"n_success":29,"n_failure":56,"n_max_steps":0,"n_system_error":4,"n_missing":0},"avg_wall_time_s":651.755,"max_steps_per_episode":100},"detailed_results":{"file":"alexandre.lacoste__20260603_114932_Genny-azure_gpt-5.4-mini_terminalbench2-cube_ref-baseline-r0-mini-tbench2_215cc0e7.samples.jsonl.gz","format":"jsonl.gz","sha256":"22c90b2337fbf60a62bd49c2e3486e93d74b8d6479460b42af9c47c242298b26","n_samples":85},"_submitter":"\u2014","_date":"2026-06-04","_detail_url":"https://github.com/The-AI-Alliance/cube-registry/blob/main/results/terminalbench2/alexandre.lacoste__20260603_114932_Genny-azure_gpt-5.4-mini_terminalbench2-cube_ref-baseline-r0-mini-tbench2_215cc0e7.json"}]</script>
+
+    <!-- Compare modal (hidden by default; populated on demand). -->
+    <div id="compare-modal" class="fixed inset-0 z-50 hidden bg-gray-900/70 p-4 sm:p-8 overflow-auto">
+      <div class="mx-auto max-w-7xl rounded-xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+          <h3 id="compare-title" class="text-base font-bold">Compare submissions</h3>
+          <button id="compare-close" class="text-2xl leading-none text-gray-500 hover:text-gray-800"
+                  aria-label="Close">&times;</button>
+        </div>
+        <div id="compare-body" class="overflow-x-auto p-5 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- Grid.js (CDN). Vendored CSS keeps the table Tailwind-friendly. -->
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+    <script>
+    (function () {
+      const RESULTS = JSON.parse(document.getElementById('results-data').textContent);
+      const selected = new Set();
+
+      // ── Selection helpers ──────────────────────────────────────────────
+      function toggleSelection(eid, checked) {
+        if (checked) selected.add(eid); else selected.delete(eid);
+        renderSelectionToolbar();
+      }
+      function renderSelectionToolbar() {
+        const n = selected.size;
+        document.getElementById('results-selected-count').textContent =
+          n === 0 ? 'No rows selected' :
+          n === 1 ? '1 row selected (need 2 or more to compare)' :
+                    n + ' rows selected';
+        const btn = document.getElementById('results-compare-btn');
+        const clr = document.getElementById('results-clear-btn');
+        btn.classList.toggle('hidden', n === 0);
+        clr.classList.toggle('hidden', n === 0);
+        btn.disabled = n < 2;
+      }
+      document.getElementById('results-compare-btn').addEventListener('click', () => {
+        const recs = Array.from(selected).map(getRecord).filter(Boolean);
+        if (recs.length >= 2) openCompareModal(recs);
+      });
+      document.getElementById('results-clear-btn').addEventListener('click', () => {
+        selected.clear();
+        document.querySelectorAll('.results-checkbox').forEach(cb => { cb.checked = false; });
+        renderSelectionToolbar();
+      });
+
+      // ── Grid.js table ──────────────────────────────────────────────────
+      // Pre-flatten rows for sorting. Numeric score/timestamp give correct sort
+      // order; HTML renderers below handle the display.
+      function subsetCell(s) {
+        // Compact 2-line layout: name on top, filter / "custom: N tasks" on
+        // bottom. Makes the subset shape immediately readable — full subset
+        // vs named filter vs hand-picked list — without consulting the modal.
+        const name = s && s.name ? s.name : '—';
+        const n    = s && s.n_tasks != null ? s.n_tasks : '?';
+        let bottom;
+        if (s && s.task_ids && s.task_ids.length) {
+          bottom = 'custom: ' + s.task_ids.length + ' tasks';
+        } else if (s && s.filter) {
+          bottom = s.filter + ' · ' + n + ' tasks';
+        } else {
+          bottom = n + ' tasks';
+        }
+        return gridjs.html(
+          '<div class="font-mono text-gray-700">' + escapeHtml(name) + '</div>' +
+          '<div class="font-mono text-gray-400 text-[10px]">' + escapeHtml(bottom) + '</div>'
+        );
+      }
+      const rows = RESULTS.map(r => ({
+        eid: r.evaluation_id,
+        date: r._date,
+        ts: r.evaluation_timestamp,
+        agentModel: (r.agent.config_type || '') + ' / ' + (r.agent.llm_model || ''),
+        subset: r.benchmark_subset,
+        scoreNum: r.results.avg_score,
+        scoreDisp: r.results.avg_score.toFixed(3) +
+          (r.results.std_err != null ? ' ± ' + r.results.std_err.toFixed(3) : ''),
+        outcomes: r.results.outcomes,
+        detailUrl: r._detail_url,
+      }));
+
+      function outcomesCell(o) {
+        return gridjs.html(
+          '<span class="text-green-700" title="success">' + o.n_success + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-red-700" title="clean failure">' + o.n_failure + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-yellow-700" title="max steps">' + o.n_max_steps + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-purple-700" title="system error">' + o.n_system_error + '</span>' +
+          '<span class="text-gray-300">/</span>' +
+          '<span class="text-gray-500" title="missing">' + o.n_missing + '</span>'
+        );
+      }
+      const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+      new gridjs.Grid({
+        columns: [
+          {
+            id: 'sel', name: '',
+            sort: false,
+            formatter: (_, row) => {
+              const eid = row.cells[1].data; // hidden eid column
+              return gridjs.html(
+                '<input type="checkbox" class="results-checkbox" data-eid="' +
+                escapeHtml(eid) + '" ' + (selected.has(eid) ? 'checked' : '') + '>'
+              );
+            },
+          },
+          { id: 'eid', name: '', hidden: true },
+          // ISO YYYY-MM-DD dates sort lexically as chronological, so the default
+          // string sort is correct here — no custom comparator needed.
+          { id: 'date', name: 'Date' },
+          { id: 'ts', name: '', hidden: true },
+          { id: 'agentModel', name: 'Agent / Model' },
+          // Subset cell renders the BenchmarkSubset object as a 2-line
+          // name + filter/custom layout. The custom comparator unwraps
+          // .name from the object so Grid.js can sort lexicographically.
+          { id: 'subset', name: 'Subset',
+            sort: { compare: (a, b) => {
+              const ka = (a && a.name) || '';
+              const kb = (b && b.name) || '';
+              return ka.localeCompare(kb);
+            }},
+            formatter: (s) => subsetCell(s) },
+          { id: 'scoreNum', name: 'Score',
+            formatter: (n, row) => row.cells[7].data /* scoreDisp */ },
+          { id: 'scoreDisp', name: '', hidden: true },
+          { id: 'outcomes', name: 'Outcomes',
+            sort: false,
+            formatter: (o) => outcomesCell(o) },
+          // Detail link opens the same modal as Compare, with N=1 — gives a
+          // typed, grouped view of every field instead of dropping the user
+          // into the raw JSON. The Raw JSON link remains in the modal column
+          // header for anyone who needs the literal file.
+          { id: 'eid_detail', name: '',
+            sort: false,
+            formatter: (eid) => gridjs.html(
+              '<button class="results-details text-indigo-600 hover:underline" data-eid="' +
+              escapeHtml(eid) + '">Details →</button>') },
+        ],
+        data: rows.map(r => [
+          null, r.eid, r.date, r.ts, r.agentModel, r.subset, r.scoreNum, r.scoreDisp, r.outcomes, r.eid
+        ]),
+        sort: true,
+        pagination: { limit: 20 },
+        className: { table: 'text-xs', th: 'bg-gray-50' },
+      }).render(document.getElementById('results-grid'));
+
+      // Selection wiring: delegate change events on the grid container so the
+      // handler survives Grid.js re-renders during pagination / sorting.
+      const grid = document.getElementById('results-grid');
+      grid.addEventListener('change', (e) => {
+        if (e.target.classList.contains('results-checkbox')) {
+          toggleSelection(e.target.dataset.eid, e.target.checked);
+        }
+      });
+      grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.results-details');
+        if (!btn) return;
+        const rec = getRecord(btn.dataset.eid);
+        if (rec) openCompareModal([rec]);
+      });
+
+      // ── Compare modal ──────────────────────────────────────────────────
+      function getRecord(eid) {
+        return RESULTS.find(r => r.evaluation_id === eid);
+      }
+      // Field plan: [{label, group, getter(record) -> string|null}]
+      // null/undefined values render as "—". Diff highlight is applied per row.
+      function fieldPlan() {
+        return [
+          ['Identity', [
+            ['Date',                r => r._date],
+            ['Evaluation ID',       r => r.evaluation_id],
+            ['Submitter',           r => r._submitter],
+          ]],
+          ['Benchmark', [
+            ['Subset name',         r => r.benchmark_subset.name],
+            ['Subset n_tasks',      r => String(r.benchmark_subset.n_tasks)],
+            ['Subset filter',       r => r.benchmark_subset.filter || null],
+            // Explicit task_ids — surfaced so a reader knows which tasks were
+            // hand-picked. Long lists are truncated to avoid blowing the cell;
+            // the raw JSON link in the column header has the complete set.
+            ['Subset task_ids',     r => {
+              const ids = r.benchmark_subset.task_ids;
+              if (!ids || !ids.length) return null;
+              if (ids.length <= 5) return ids.join('\n');
+              return ids.slice(0, 5).join('\n') + '\n…and ' + (ids.length - 5) + ' more';
+            }],
+            ['Benchmark version',   r => r.benchmark_version],
+          ]],
+          ['Agent', [
+            ['Config type',         r => r.agent.config_type],
+            ['LLM model',           r => r.agent.llm_model],
+            ['Agent ID (sha-256)',  r => r.agent.agent_id],
+            ['Framework version',   r => r.agent.framework_version],
+          ]],
+          ['Provenance', [
+            ['cube-harness commit', r => r.agent.git_commit ? r.agent.git_commit.slice(0,12) : null],
+            ['cube-harness dirty?', r => r.agent.git_is_dirty == null ? null : (r.agent.git_is_dirty ? 'yes' : 'no')],
+            ['cube-standard commit',r => r.agent.cube_standard_git_commit ? r.agent.cube_standard_git_commit.slice(0,12) : null],
+            ['cube-standard dirty?',r => r.agent.cube_standard_git_is_dirty == null ? null : (r.agent.cube_standard_git_is_dirty ? 'yes' : 'no')],
+            // 'deps' kind: rendered as a per-package sub-table with amber
+            // highlights on rows where the columns disagree. The diff signal
+            // matters more than the dump itself.
+            {label: 'Dependency versions', kind: 'deps',
+              get: r => r.agent.dependency_versions || {}},
+          ]],
+          ['Outcome', [
+            ['Score',               r => r.results.avg_score.toFixed(3)],
+            ['Std err',             r => r.results.std_err != null ? r.results.std_err.toFixed(3) : null],
+            ['n_success',           r => String(r.results.outcomes.n_success)],
+            ['n_failure',           r => String(r.results.outcomes.n_failure)],
+            ['n_max_steps',         r => String(r.results.outcomes.n_max_steps)],
+            ['n_system_error',      r => String(r.results.outcomes.n_system_error)],
+            ['n_missing',           r => String(r.results.outcomes.n_missing)],
+            ['Max steps cap',       r => r.results.max_steps_per_episode != null ? String(r.results.max_steps_per_episode) : null],
+            ['Avg wall time (s)',   r => r.results.avg_wall_time_s != null ? r.results.avg_wall_time_s.toFixed(1) : null],
+            ['Total cost (USD)',    r => r.results.total_cost_usd != null ? '$' + r.results.total_cost_usd.toFixed(2) : null],
+          ]],
+        ];
+      }
+      function openCompareModal(recs) {
+        if (!recs || recs.length === 0) return;
+        document.getElementById('compare-title').textContent =
+          recs.length === 1 ? 'Submission details' : 'Compare submissions';
+        document.getElementById('compare-body').innerHTML = renderCompareTable(recs);
+        document.getElementById('compare-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeCompareModal() {
+        document.getElementById('compare-modal').classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+      document.getElementById('compare-close').addEventListener('click', closeCompareModal);
+      document.getElementById('compare-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'compare-modal') closeCompareModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeCompareModal();
+      });
+
+      // Per-package diff renderer for dependency_versions cells. Each input
+      // dict gets one column; each row of the inner sub-tables is one package.
+      // Rows where versions disagree across columns get amber backgrounds —
+      // that's the signal that matters when you've selected 2+ runs. The outer
+      // cell's amber-or-not mirrors "any package differs".
+      //
+      // Within a cell, packages are split into two tiers:
+      //   primary   — pinned inline at the top, always visible
+      //   secondary — inside a <details> collapsible
+      // The primary set is the union of each column's `agent.primary_dependencies`,
+      // so two submissions with different primary lists still show every primary
+      // package from either side at the top.
+      function renderDepsCells(dicts, primarySets, cols) {
+        const allKeys = Array.from(new Set(dicts.flatMap(d => Object.keys(d || {})))).sort();
+        if (allKeys.length === 0) {
+          let html = '';
+          for (let i = 0; i < cols; i++) {
+            html += '<td class="px-3 py-1.5 border border-gray-100 align-top"><span class="text-gray-400">—</span></td>';
+          }
+          return html;
+        }
+
+        const unionPrimary = new Set();
+        for (const s of primarySets) for (const k of s) unionPrimary.add(k);
+        const primaryKeys   = allKeys.filter(k => unionPrimary.has(k));
+        const secondaryKeys = allKeys.filter(k => !unionPrimary.has(k));
+
+        // For N=1 there's nothing to diff. For N>=2 a key "differs" if not all
+        // columns agree on its version (missing counts as differing).
+        const keyDiffers = (k) => {
+          if (cols === 1) return false;
+          const first = (dicts[0] || {})[k];
+          return dicts.some(d => (d || {})[k] !== first);
+        };
+        const diffPrimary   = primaryKeys.filter(keyDiffers);
+        const diffSecondary = secondaryKeys.filter(keyDiffers);
+        const diffSet = new Set([...diffPrimary, ...diffSecondary]);
+        const cellDiff = diffSet.size > 0 ? ' bg-amber-50' : '';
+
+        const renderRows = (keys, dict) => {
+          let rows = '';
+          for (const k of keys) {
+            const v = dict[k];
+            const rowDiff = diffSet.has(k) ? 'bg-amber-50' : '';
+            const valHtml = v == null
+              ? '<span class="text-gray-400">— missing</span>'
+              : escapeHtml(v);
+            rows += '<tr class="' + rowDiff + '">' +
+              '<td class="px-2 py-0.5 text-gray-500 font-mono break-all align-top" style="width:55%">' + escapeHtml(k) + '</td>' +
+              '<td class="px-2 py-0.5 text-gray-800 font-mono break-all align-top">' + valHtml + '</td>' +
+              '</tr>';
+          }
+          return rows;
+        };
+
+        // Summary line: report counts at both tiers when we have at least one
+        // primary and at least one secondary; otherwise compact.
+        const summary = () => {
+          const parts = [];
+          if (primaryKeys.length) {
+            const tail = cols >= 2
+              ? (diffPrimary.length ? ' (' + diffPrimary.length + ' differ)' : '')
+              : '';
+            parts.push(primaryKeys.length + ' primary' + tail);
+          }
+          if (secondaryKeys.length) {
+            const tail = cols >= 2
+              ? (diffSecondary.length ? ' (' + diffSecondary.length + ' differ)' : '')
+              : '';
+            parts.push(secondaryKeys.length + ' secondary' + tail);
+          }
+          return parts.join(' · ');
+        };
+
+        let html = '';
+        for (let c = 0; c < cols; c++) {
+          const d = dicts[c] || {};
+          let cell = '<div class="text-[11px] font-medium text-gray-500 mb-1">' + summary() + '</div>';
+          if (primaryKeys.length) {
+            cell += '<table class="w-full border-collapse text-[11px] mb-1"><tbody>' +
+              renderRows(primaryKeys, d) + '</tbody></table>';
+          }
+          if (secondaryKeys.length) {
+            cell += '<details class="cursor-pointer">' +
+              '<summary class="text-gray-500 text-[11px]">▶ secondary (' + secondaryKeys.length + ' items)</summary>' +
+              '<table class="mt-1 w-full border-collapse text-[11px]"><tbody>' +
+              renderRows(secondaryKeys, d) + '</tbody></table>' +
+              '</details>';
+          }
+          html += '<td class="px-3 py-1.5 border border-gray-100 align-top' + cellDiff + '">' + cell + '</td>';
+        }
+        return html;
+      }
+
+      function renderCompareTable(recs) {
+        const plan = fieldPlan();
+        const cols = recs.length;
+        // table-layout: fixed + a <colgroup> with the Field column pinned at
+        // 14rem makes the submission columns share the remaining width
+        // equally. Combined with `break-all` on data cells, long
+        // monospace strings (sha256 agent_id, git commits, URLs) wrap
+        // inside their column instead of forcing horizontal scroll.
+        let html = '<table class="w-full border-collapse" style="table-layout:fixed">' +
+          '<colgroup><col style="width:14rem">';
+        for (let i = 0; i < cols; i++) html += '<col>';
+        html += '</colgroup><thead><tr>' +
+          '<th class="bg-gray-50 px-3 py-2 text-left font-semibold border border-gray-200">Field</th>';
+        for (const r of recs) {
+          html += '<th class="px-3 py-2 text-left font-semibold border border-gray-200 bg-gray-50 align-top">' +
+            '<div class="font-mono text-gray-700 break-all">' + escapeHtml(r.agent.config_type || '') + ' / ' + escapeHtml(r.agent.llm_model || '') + '</div>' +
+            '<div class="text-gray-500 font-normal mt-0.5">' + escapeHtml(r._date) + ' · score ' + r.results.avg_score.toFixed(3) + '</div>' +
+            '<div class="mt-1"><a class="text-indigo-600 hover:underline" href="' + escapeHtml(r._detail_url) + '">Raw JSON →</a></div>' +
+            '</th>';
+        }
+        html += '</tr></thead><tbody>';
+        for (const [groupName, fields] of plan) {
+          html += '<tr><td colspan="' + (cols + 1) + '" class="bg-indigo-50 px-3 py-1.5 font-semibold text-indigo-900 text-[11px] uppercase tracking-wider border border-indigo-100">' + escapeHtml(groupName) + '</td></tr>';
+          for (const entry of fields) {
+            // Two field-entry shapes:
+            //   ['label', getter]                    → kind 'text' (default)
+            //   {label, kind: 'deps', get: getter}   → typed renderer
+            const label  = Array.isArray(entry) ? entry[0] : entry.label;
+            const getter = Array.isArray(entry) ? entry[1] : entry.get;
+            const kind   = Array.isArray(entry) ? 'text'   : (entry.kind || 'text');
+
+            const values = recs.map(r => { try { return getter(r); } catch (e) { return null; } });
+            html += '<tr>' +
+              '<td class="bg-white px-3 py-1.5 text-gray-500 border border-gray-100 align-top">' +
+              escapeHtml(label) + '</td>';
+
+            if (kind === 'deps') {
+              const primarySets = recs.map(r => new Set((r.agent && r.agent.primary_dependencies) || []));
+              html += renderDepsCells(values, primarySets, cols);
+            } else {
+              // For N=1 there is nothing to diff, so don't highlight cells.
+              // For N>=2 a mismatched value lights up amber.
+              const allEqual = cols === 1 || values.every(v => v === values[0]);
+              for (const v of values) {
+                const diffBg = allEqual ? '' : 'bg-amber-50';
+                const cellContent = v == null ? '<span class="text-gray-400">—</span>'
+                  : '<span class="font-mono text-gray-800 break-all">' + escapeHtml(v) + '</span>';
+                html += '<td class="px-3 py-1.5 border border-gray-100 align-top ' + diffBg + '">' + cellContent + '</td>';
+              }
+            }
+            html += '</tr>';
+          }
+        }
+        html += '</tbody></table>';
+        if (cols >= 2) {
+          html += '<p class="mt-3 text-[11px] text-gray-400">Cells with <span class="bg-amber-50 px-1">amber background</span> differ between selected submissions.</p>';
+        }
+        return html;
+      }
+    })();
+    </script>
+
     
   </section>
 
@@ -318,7 +744,7 @@ features:
   <p>
     CUBE Registry — <a href="https://github.com/The-AI-Alliance/cube-registry" class="underline">GitHub</a> ·
     <a href="../" class="underline">All benchmarks</a> ·
-    Generated 2026-06-10 20:42 UTC
+    Generated 2026-06-10 20:55 UTC
   </p>
 </footer>
 
