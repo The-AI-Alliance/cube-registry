@@ -248,7 +248,23 @@
     "instance_results_url": {
       "type": "string",
       "format": "uri",
-      "description": "Optional: pointer to externally-hosted per-task data (e.g. JSONL on HuggingFace). The registry journal stores aggregates only."
+      "description": "Optional: pointer to externally-hosted per-task data (e.g. JSONL on HuggingFace). Prefer detailed_results for in-repo bundles."
+    },
+    "detailed_results": {
+      "type": "object",
+      "description": "Optional: pointer to the per-task samples bundle committed next to this record under results/<cube-id>/. The verifier decompresses it, validates each row against samples-schema.json, and re-derives results.avg_score to confirm this summary is consistent with its raw data.",
+      "required": ["file", "format", "sha256", "n_samples"],
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:+-]+\\.samples\\.jsonl\\.gz$",
+          "description": "Bundle filename, relative to this record's directory. Must share this record's stem (<evaluation_id>.samples.jsonl.gz)."
+        },
+        "format": {"type": "string", "enum": ["jsonl.gz"]},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Hex sha256 of the bundle bytes; the verifier re-checks it."},
+        "n_samples": {"type": "integer", "minimum": 0, "description": "Number of per-task rows in the bundle."}
+      }
     }
   }
 }

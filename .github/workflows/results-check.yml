@@ -38,6 +38,7 @@ jobs:
           files_yaml: |
             results:
               - results/*/*.json
+              - results/*/*.samples.jsonl.gz
               - '!results/*/_*.json'
 
       # Modified, deleted, renamed, or copied files anywhere under results/.

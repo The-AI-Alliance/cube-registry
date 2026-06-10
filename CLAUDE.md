@@ -91,9 +91,12 @@ PRs are reviewed with `/code-review` ([plugin docs](https://github.com/anthropic
 - `docs/` is writable only by the CI bot (via `generate-site`).
 - `results/*/_submissions.json` is writable only by the CI bot (via `record-submitter`).
 - `results/` accepts community PRs and auto-merges them iff `results-check`
-  passes and the diff is strictly additions under `results/<cube>/*.json`. Any
-  modification or deletion of an existing file in `results/` is rejected (the
-  journal is append-only).
+  passes and the diff is strictly additions under `results/<cube>/` of either
+  `*.json` (summary) or `*.samples.jsonl.gz` (per-task bundle; eligible only when
+  a summary references it via `detailed_results` and it passes the verifier's
+  sha256 / schema / consistency / size / orphan checks). Any modification or
+  deletion of an existing file in `results/` is rejected (the journal is
+  append-only).
 - Ownership check reads `origin/main`, never the PR branch.
 - Quick-check runs in a hardened Docker sandbox WITHOUT cloud credentials.
 - Slow-check has credentials but NEVER imports the benchmark package — the package

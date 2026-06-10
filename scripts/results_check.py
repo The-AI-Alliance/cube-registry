@@ -19,6 +19,8 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import json
 import re
 import sys
@@ -30,10 +32,17 @@ from ruamel.yaml import YAML
 SCRIPT_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = SCRIPT_DIR.parent
 SCHEMA_PATH = REPO_ROOT / "results-schema.json"
+SAMPLES_SCHEMA_PATH = REPO_ROOT / "samples-schema.json"
 ENTRIES_DIR = REPO_ROOT / "entries"
 RESULTS_DIR = REPO_ROOT / "results"
 
-MAX_FILE_SIZE_BYTES = 50 * 1024  # 50 KB
+# The summary record stays tiny (it drives the UI table); per-task detail goes
+# in the companion bundle, which gets its own, larger cap.
+MAX_FILE_SIZE_BYTES = 50 * 1024  # 50 KB — summary records only
+MAX_BUNDLE_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB — the .samples.jsonl.gz bundle
+BUNDLE_SUFFIX = ".samples.jsonl.gz"
+# avg_score is rounded to 6 decimals on both sides; allow a hair of float slack.
+AVG_SCORE_TOLERANCE = 1e-6
 
 # Slash → __ when sanitizing evaluation_id into a filename stem.
 _FILENAME_REPLACE = str.maketrans({"/": "__"})
@@ -55,8 +64,113 @@ def _load_schema() -> dict:
     return schema
 
 
+def _load_samples_schema() -> dict:
+    with SAMPLES_SCHEMA_PATH.open() as f:
+        schema = json.load(f)
+    jsonschema.Draft7Validator.check_schema(schema)
+    return schema
+
+
 def _load_yaml(path: Path) -> dict:
     return YAML().load(path.read_text())
+
+
+def check_bundle(
+    summary_path: Path,
+    record: dict,
+    samples_schema: dict,
+) -> tuple[list[str], str | None]:
+    """Validate the per-task bundle referenced by *record*'s ``detailed_results``.
+
+    Returns ``(failures, bundle_filename)`` — ``bundle_filename`` is the name the
+    record references (or None when it has no ``detailed_results``), so the caller
+    can mark it accounted-for and reject orphan bundles. The bundle must:
+      - sit next to the summary, share its stem, and exist;
+      - be within the size cap;
+      - hash to the recorded ``sha256`` (tamper-evidence);
+      - decompress to JSONL that line-validates against samples-schema.json;
+      - hold exactly ``n_samples`` rows; and
+      - re-derive ``results.avg_score`` from its non-null scores (the consistency
+        gate — a summary cannot claim a headline its own samples don't support).
+    """
+    detailed = record.get("detailed_results")
+    if detailed is None:
+        return [], None  # backward-compatible: aggregate-only submissions still allowed
+
+    bundle_name = detailed["file"]
+    expected_stem = summary_path.stem  # already verified == sanitized evaluation_id
+    if bundle_name != f"{expected_stem}{BUNDLE_SUFFIX}":
+        return (
+            [
+                f"detailed_results.file '{bundle_name}' must be "
+                f"'{expected_stem}{BUNDLE_SUFFIX}' (share the record's stem)"
+            ],
+            bundle_name,
+        )
+
+    bundle_path = summary_path.parent / bundle_name
+    if not bundle_path.exists():
+        return [
+            f"detailed_results.file '{bundle_name}' is not present next to the record"
+        ], bundle_name
+
+    size = bundle_path.stat().st_size
+    if size > MAX_BUNDLE_SIZE_BYTES:
+        return [
+            f"bundle '{bundle_name}' is {size} bytes, over the {MAX_BUNDLE_SIZE_BYTES}-byte cap"
+        ], bundle_name
+
+    raw_gz = bundle_path.read_bytes()
+    actual_sha = hashlib.sha256(raw_gz).hexdigest()
+    if actual_sha != detailed["sha256"]:
+        return (
+            [
+                f"bundle '{bundle_name}' sha256 {actual_sha[:12]}… != "
+                f"detailed_results.sha256 {detailed['sha256'][:12]}…"
+            ],
+            bundle_name,
+        )
+
+    try:
+        text = gzip.decompress(raw_gz).decode("utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        return [f"bundle '{bundle_name}' could not be gunzipped/decoded: {e}"], bundle_name
+
+    failures: list[str] = []
+    validator = jsonschema.Draft7Validator(samples_schema)
+    scores: list[float] = []
+    rows = [ln for ln in text.splitlines() if ln.strip()]
+    for i, line in enumerate(rows):
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as e:
+            failures.append(f"bundle '{bundle_name}' line {i + 1}: invalid JSON: {e}")
+            continue
+        line_errors = sorted(validator.iter_errors(row), key=lambda e: list(e.path))
+        for err in line_errors[:3]:  # cap noise per line
+            loc = ".".join(map(str, err.path)) or "<root>"
+            failures.append(f"bundle '{bundle_name}' line {i + 1}: {loc}: {err.message}")
+        if not line_errors and row.get("score") is not None:
+            scores.append(float(row["score"]))
+    if failures:
+        return failures, bundle_name  # don't trust counts/aggregate over malformed rows
+
+    if len(rows) != detailed["n_samples"]:
+        failures.append(
+            f"bundle '{bundle_name}' has {len(rows)} rows but "
+            f"detailed_results.n_samples={detailed['n_samples']}"
+        )
+
+    # ── Consistency: the bundle must re-derive the summary's headline ───────
+    recomputed = round(sum(scores) / len(scores), 6) if scores else 0.0
+    claimed = record["results"]["avg_score"]
+    if abs(recomputed - claimed) > AVG_SCORE_TOLERANCE:
+        failures.append(
+            f"results.avg_score {claimed} is not consistent with the bundle: "
+            f"averaging {len(scores)} per-task scores yields {recomputed}"
+        )
+
+    return failures, bundle_name
 
 
 def _file_to_cube_id(file_path: Path) -> str:
@@ -149,6 +263,7 @@ def check_file(
     file_path: Path,
     schema: dict,
     *,
+    samples_schema: dict | None = None,
     sibling_added_ids: set[str] | None = None,
 ) -> list[str]:
     """Run every check on one added file. Returns the list of failure messages.
@@ -276,6 +391,11 @@ def check_file(
             "in this same PR — each submission needs a unique id"
         )
 
+    # ── Detailed per-task bundle (optional) ─────────────────────────────────
+    if "detailed_results" in record and samples_schema is not None:
+        bundle_failures, _ = check_bundle(file_path, record, samples_schema)
+        failures.extend(bundle_failures)
+
     return failures
 
 
@@ -321,19 +441,46 @@ def main() -> int:
         return 0
 
     schema = _load_schema()
+    samples_schema = _load_samples_schema()
+    # Partition the batch: summary records vs per-task bundles. Bundles are
+    # validated *through* their summary (check_bundle), so a bundle added without
+    # a referencing summary is an orphan and rejected below (defense in depth —
+    # the bundle rides under results/ but only a summary's pointer vouches for it).
+    added_paths = [Path(p) for p in args.added]
+    summary_paths = [p for p in added_paths if p.name.endswith(".json")]
+    bundle_paths = [p for p in added_paths if p.name.endswith(BUNDLE_SUFFIX)]
+
     # Pre-collect every evaluation_id this PR is attempting to add so any
     # check_file invocation can see the rest of its own batch (S2).
-    added_paths = [Path(p) for p in args.added]
     batch_ids: dict[Path, str] = {}
-    for path in added_paths:
+    for path in summary_paths:
         try:
             batch_ids[path] = json.loads(path.read_text()).get("evaluation_id")
         except Exception:
             batch_ids[path] = None
+
     per_file: dict[Path, list[str]] = {}
-    for path in added_paths:
+    referenced_bundles: set[str] = set()
+    for path in summary_paths:
         siblings = {eid for p, eid in batch_ids.items() if p != path and isinstance(eid, str)}
-        per_file[path] = check_file(path, schema, sibling_added_ids=siblings)
+        per_file[path] = check_file(
+            path, schema, samples_schema=samples_schema, sibling_added_ids=siblings
+        )
+        try:
+            detailed = json.loads(path.read_text()).get("detailed_results")
+            if isinstance(detailed, dict) and isinstance(detailed.get("file"), str):
+                referenced_bundles.add(detailed["file"])
+        except Exception:
+            pass
+
+    # Orphan bundles: a .samples.jsonl.gz added without a summary referencing it.
+    for bpath in bundle_paths:
+        per_file.setdefault(bpath, [])
+        if bpath.name not in referenced_bundles:
+            per_file[bpath].append(
+                f"bundle '{bpath.name}' is added without a summary record referencing it "
+                "via detailed_results — orphan bundles are not accepted"
+            )
 
     summary = _format_summary(per_file)
     print(summary)
