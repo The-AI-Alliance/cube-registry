@@ -132,7 +132,7 @@
     },
     "benchmark_version": {
       "type": "string",
-      "description": "Version of the benchmark package the result was produced against.",
+      "description": "Version of the benchmark package the result was produced against. Bump it on any result-affecting change (tasks, scorer, default config) so that a shared version signals comparability; the registry's compare view warns when two results share a benchmark_version but differ in cube-harness / cube-standard commit (codebase changed without a bump) and links a GitHub diff between the commits.",
       "minLength": 1,
       "maxLength": 64
     },

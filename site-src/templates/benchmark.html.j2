@@ -577,9 +577,18 @@
             ['Framework version',   r => r.agent.framework_version],
           ]],
           ['Provenance', [
-            ['cube-harness commit', r => r.agent.git_commit ? r.agent.git_commit.slice(0,12) : null],
+            // 'commit' kind: shows the short sha; when exactly two runs are
+            // compared and their commits differ, the field label gets a GitHub
+            // `…/compare/A...B` link so the cryptic hash becomes "what changed".
+            {label: 'cube-harness commit', kind: 'commit',
+              get: r => r.agent.git_commit || null,
+              repo: r => repoBase(r.agent.git_remote_url)},
             ['cube-harness dirty?', r => r.agent.git_is_dirty == null ? null : (r.agent.git_is_dirty ? 'yes' : 'no')],
-            ['cube-standard commit',r => r.agent.cube_standard_git_commit ? r.agent.cube_standard_git_commit.slice(0,12) : null],
+            // cube-standard's remote isn't recorded per-result; it's a single
+            // canonical repo, so the compare link targets it directly.
+            {label: 'cube-standard commit', kind: 'commit',
+              get: r => r.agent.cube_standard_git_commit || null,
+              repo: () => 'https://github.com/The-AI-Alliance/cube-standard'},
             ['cube-standard dirty?',r => r.agent.cube_standard_git_is_dirty == null ? null : (r.agent.cube_standard_git_is_dirty ? 'yes' : 'no')],
             // 'deps' kind: rendered as a per-package sub-table with amber
             // highlights on rows where the columns disagree. The diff signal
@@ -715,15 +724,41 @@
         return html;
       }
 
+      // cube-harness records git_remote_url as a `…/tree/<sha>` link; the compare
+      // URL needs the bare repo. Strip a trailing /tree|/commit|/blob/<sha>.
+      function repoBase(url) {
+        if (!url) return null;
+        return url.replace(/\/(tree|commit|blob)\/[0-9a-f]+\/?$/i, '').replace(/\/+$/, '');
+      }
+
       function renderCompareTable(recs) {
         const plan = fieldPlan();
         const cols = recs.length;
+
+        // "Same version, different code" guard. benchmark_version is meant to
+        // signal comparability, but it isn't always bumped on a result-affecting
+        // change — so warn when the version matches yet a code hash (harness /
+        // cube-standard) differs. The per-commit `diff →` links make it actionable.
+        let versionGuard = '';
+        if (cols >= 2) {
+          const same = a => a.every(v => v === a[0]);
+          const sameVersion = same(recs.map(r => r.benchmark_version));
+          const codeDiffers =
+            !same(recs.map(r => r.agent.git_commit || '')) ||
+            !same(recs.map(r => r.agent.cube_standard_git_commit || ''));
+          if (sameVersion && codeDiffers) {
+            versionGuard = '<div class="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900">'
+              + '⚠ Same <span class="font-mono">benchmark_version</span> but a different cube-harness / cube-standard commit — '
+              + 'the codebase changed without a version bump, so scores may not be directly comparable. '
+              + 'See the <span class="font-mono">diff →</span> links in Provenance.</div>';
+          }
+        }
         // table-layout: fixed + a <colgroup> with the Field column pinned at
         // 14rem makes the submission columns share the remaining width
         // equally. Combined with `break-all` on data cells, long
         // monospace strings (sha256 agent_id, git commits, URLs) wrap
         // inside their column instead of forcing horizontal scroll.
-        let html = '<table class="w-full border-collapse" style="table-layout:fixed">' +
+        let html = versionGuard + '<table class="w-full border-collapse" style="table-layout:fixed">' +
           '<colgroup><col style="width:14rem">';
         for (let i = 0; i < cols; i++) html += '<col>';
         html += '</colgroup><thead><tr>' +
@@ -747,18 +782,31 @@
             const kind   = Array.isArray(entry) ? 'text'   : (entry.kind || 'text');
 
             const values = recs.map(r => { try { return getter(r); } catch (e) { return null; } });
+
+            // 'commit' kind: when exactly two runs differ, link the label to a
+            // GitHub compare between the two full SHAs.
+            let labelHtml = escapeHtml(label);
+            if (kind === 'commit' && cols === 2 && values[0] && values[1] && values[0] !== values[1] && entry.repo) {
+              const repo = entry.repo(recs[0]);
+              if (repo) {
+                const cmp = repo + '/compare/' + encodeURIComponent(values[0]) + '...' + encodeURIComponent(values[1]);
+                labelHtml += ' <a class="text-indigo-600 hover:underline whitespace-nowrap" target="_blank" rel="noopener" '
+                  + 'href="' + escapeHtml(cmp) + '" title="GitHub diff between the two commits (valid while both are retained)">diff →</a>';
+              }
+            }
             html += '<tr>' +
-              '<td class="bg-white px-3 py-1.5 text-gray-500 border border-gray-100 align-top">' +
-              escapeHtml(label) + '</td>';
+              '<td class="bg-white px-3 py-1.5 text-gray-500 border border-gray-100 align-top">' + labelHtml + '</td>';
 
             if (kind === 'deps') {
               const primarySets = recs.map(r => new Set((r.agent && r.agent.primary_dependencies) || []));
               html += renderDepsCells(values, primarySets, cols);
             } else {
               // For N=1 there is nothing to diff, so don't highlight cells.
-              // For N>=2 a mismatched value lights up amber.
+              // For N>=2 a mismatched value lights up amber. 'commit' cells show
+              // the short sha but diff on the full value.
+              const display = kind === 'commit' ? values.map(v => v ? v.slice(0, 12) : null) : values;
               const allEqual = cols === 1 || values.every(v => v === values[0]);
-              for (const v of values) {
+              for (const v of display) {
                 const diffBg = allEqual ? '' : 'bg-amber-50';
                 const cellContent = v == null ? '<span class="text-gray-400">—</span>'
                   : '<span class="font-mono text-gray-800 break-all">' + escapeHtml(v) + '</span>';
