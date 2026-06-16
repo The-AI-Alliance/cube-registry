@@ -1,0 +1,47 @@
+id: bfcl
+name: "Berkeley Function Calling Leaderboard"
+version: "0.1.0"
+description: >
+  The Berkeley Function Calling Leaderboard (BFCL v4) ported to the CUBE
+  protocol — the recognized benchmark for evaluating an LLM's ability to call
+  functions/tools. This cube covers the Python single-turn, AST-scored
+  categories (3491 tasks): the agent reads a user query plus a per-task set of
+  function schemas and emits the function call(s) it would make, which are
+  matched against BFCL's ground truth (abstract-syntax-tree argument matching,
+  plus presence/absence scoring for the relevance and irrelevance categories).
+  Covers the NON_LIVE categories (simple, multiple, parallel, parallel_multiple,
+  irrelevance) and the LIVE real-world-sourced categories. Runs in-process with
+  no Docker or network, making it fast, CI- and RL-friendly. The action space is
+  data-driven: each task exposes its own function set rather than a fixed tool
+  surface. Java/JavaScript, multi-turn, and the agentic (web-search/memory)
+  categories are out of scope for this entry.
+package: bfcl-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/bfcl-cube"
+
+authors:
+- github: recursix
+  name: Alexandre Lacoste
+
+legal:
+  wrapper_license: Apache-2.0
+  benchmark_license:
+    reported: Apache-2.0
+    source_url: "https://github.com/ShishirPatil/gorilla/blob/main/LICENSE"
+    verified_by_original_authors: false
+
+paper: "https://arxiv.org/abs/2305.15334"
+getting_started_url: "https://gorilla.cs.berkeley.edu/leaderboard.html"
+tags:
+- reasoning
+- nlp
+status: active
+resources: []
+task_count: 3491
+has_debug_task: true
+has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false
