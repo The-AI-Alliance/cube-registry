@@ -11,11 +11,7 @@ description: >
   pre-built executable Docker container, and must produce a patch that makes
   the upstream fail_to_pass tests pass without breaking pass_to_pass.
 package: swegym-cube
-# NOTE: points at the cube-harness feature branch until the cube-harness PR
-# merges to the default branch; drop the @ref (or pin @dev) after merge.
-# Also blocked until cube-standard rc9 (with IncompatibleInfraError) is on PyPI —
-# the pip-based compliance check resolves cube-standard from PyPI, not the uv git pin.
-dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness@feat/swegym-lite-cube#subdirectory=cubes/swegym-cube"
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/swegym-cube"
 
 authors:
 - github: recursix
