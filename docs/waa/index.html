@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Berkeley Function Calling Leaderboard — CUBE Registry</title>
-  <meta name="description" content="The Berkeley Function Calling Leaderboard (BFCL v4) ported to the CUBE protocol — the recognized benchmark for evaluating an LLM's ability to call functions/tools. This cube covers the Python single-t…" />
+  <title>WindowsAgentArena — CUBE Registry</title>
+  <meta name="description" content="Windows Agent Arena (WAA) benchmarks multimodal agents on real Windows 11 desktop tasks across applications like File Explorer, Edge, Chrome, VLC, and settings. Each task launches a Windows VM, runs s…" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
@@ -26,7 +26,7 @@
       CUBE Registry
     </a>
     <span class="text-gray-300">/</span>
-    <span class="text-gray-700 font-medium">Berkeley Function Calling Leaderboard</span>
+    <span class="text-gray-700 font-medium">WindowsAgentArena</span>
 
     <!-- Status badge -->
     <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-800">
@@ -41,17 +41,12 @@
   <section>
     <div class="flex items-start gap-4 flex-wrap">
       <div class="flex-1 min-w-0">
-        <h1 class="text-3xl font-extrabold text-gray-900">Berkeley Function Calling Leaderboard</h1>
-        <p class="text-sm text-gray-400 mt-1 font-mono">bfcl · v0.1.0</p>
+        <h1 class="text-3xl font-extrabold text-gray-900">WindowsAgentArena</h1>
+        <p class="text-sm text-gray-400 mt-1 font-mono">waa · v0.1.2</p>
       </div>
       
-      <a href="https://arxiv.org/abs/2305.15334" target="_blank" rel="noopener"
-         class="flex-shrink-0 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium">
-        📄 Paper
-      </a>
       
-      
-      <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener"
+      <a href="https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/windows-agent-arena-cube" target="_blank" rel="noopener"
          class="flex-shrink-0 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-medium">
         📖 Getting Started
       </a>
@@ -62,15 +57,19 @@
     
     <div class="flex flex-wrap gap-2 mt-3">
       
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-violet-100 text-violet-800">reasoning</span>
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-800">os</span>
       
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-cyan-100 text-cyan-800">nlp</span>
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800">gui</span>
+      
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-teal-100 text-teal-800">desktop</span>
+      
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-rose-100 text-rose-800">multimodal</span>
       
     </div>
     
 
     <!-- Description -->
-    <p class="mt-4 text-gray-700 leading-relaxed">The Berkeley Function Calling Leaderboard (BFCL v4) ported to the CUBE protocol — the recognized benchmark for evaluating an LLM's ability to call functions/tools. This cube covers the Python single-turn, AST-scored categories (3491 tasks): the agent reads a user query plus a per-task set of function schemas and emits the function call(s) it would make, which are matched against BFCL's ground truth (abstract-syntax-tree argument matching, plus presence/absence scoring for the relevance and irrelevance categories). Covers the NON_LIVE categories (simple, multiple, parallel, parallel_multiple, irrelevance) and the LIVE real-world-sourced categories. Runs in-process with no Docker or network, making it fast, CI- and RL-friendly. The action space is data-driven: each task exposes its own function set rather than a fixed tool surface. Java/JavaScript, multi-turn, and the agentic (web-search/memory) categories are out of scope for this entry.
+    <p class="mt-4 text-gray-700 leading-relaxed">Windows Agent Arena (WAA) benchmarks multimodal agents on real Windows 11 desktop tasks across applications like File Explorer, Edge, Chrome, VLC, and settings. Each task launches a Windows VM, runs setup, and evaluates the final desktop state. Ported to the CUBE protocol.
 </p>
 
     <!-- Authors -->
@@ -81,6 +80,14 @@
       
         <a href="https://github.com/recursix" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
           @recursix (Alexandre Lacoste)
+        </a>, 
+      
+        <a href="https://github.com/amanjaiswal73892" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @amanjaiswal73892 (Aman Jaiswal)
+        </a>, 
+      
+        <a href="https://github.com/kushasareen" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @kushasareen (Kusha Sareen)
         </a>
       
     </p>
@@ -91,7 +98,7 @@
   <section class="bg-gray-900 rounded-xl p-5">
     <p class="text-gray-400 text-sm mb-2 font-medium uppercase tracking-wider">Install</p>
     <div class="flex items-center gap-3">
-      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install bfcl-cube</code>
+      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install waa-cube</code>
       <button
         class="copy-btn bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
         onclick="copyPipInstall()"
@@ -99,8 +106,8 @@
       >Copy</button>
     </div>
     <p class="text-gray-500 text-xs mt-2">
-      Version: 0.1.0 ·
-      <a href="https://pypi.org/project/bfcl-cube/0.1.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
+      Version: 0.1.2 ·
+      <a href="https://pypi.org/project/waa-cube/0.1.2/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
     </p>
   </section>
 
@@ -108,13 +115,13 @@
   <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        3491
+        152
       </div>
       <div class="text-xs text-gray-500 mt-1">Tasks</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        local
+        azure
       </div>
       <div class="text-xs text-gray-500 mt-1">Infra</div>
     </div>
@@ -174,6 +181,46 @@
   <!-- ── Resources ─────────────────────────────────────────────────────── -->
   
   
+  <section class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-lg font-bold mb-4">Resources</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wider">
+            <th class="pb-2 pr-4">Type</th>
+            <th class="pb-2 pr-4">Name</th>
+            <th class="pb-2 pr-4">Image URL</th>
+            <th class="pb-2 pr-4">Format</th>
+            <th class="pb-2 pr-4">Size</th>
+            <th class="pb-2 pr-4">RAM</th>
+            <th class="pb-2">GPU</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr class="border-b border-gray-100 last:border-0">
+            <td class="py-2 pr-4 font-mono text-xs text-purple-700">VMResourceConfig</td>
+            <td class="py-2 pr-4 font-medium">waa-windows-vm</td>
+            <td class="py-2 pr-4">
+              —
+            </td>
+            <td class="py-2 pr-4 text-gray-500">—</td>
+            <td class="py-2 pr-4 text-gray-500">
+              —
+            </td>
+            <td class="py-2 pr-4 text-gray-500">
+              —
+            </td>
+            <td class="py-2 text-gray-500">
+              —
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </section>
+  
 
   <!-- ── Action space ───────────────────────────────────────────────────── -->
   
@@ -186,23 +233,10 @@
       <!-- Wrapper license -->
       <div class="flex gap-3 items-start">
         <span class="text-gray-500 w-40 flex-shrink-0">Wrapper license</span>
-        <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
+        <span class="font-mono font-medium text-gray-800">MIT</span>
       </div>
 
       <!-- Benchmark license -->
-      
-      <div class="flex gap-3 items-start">
-        <span class="text-gray-500 w-40 flex-shrink-0">Benchmark license</span>
-        <div>
-          <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
-          
-          <span class="ml-2 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium border border-yellow-200">Self-reported — verify before commercial use</span>
-          
-          
-          <a href="https://github.com/ShishirPatil/gorilla/blob/main/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
-          
-        </div>
-      </div>
       
 
       <!-- Notices -->
@@ -255,6 +289,24 @@
 
   <!-- ── Parallelization info ──────────────────────────────────────────── -->
   
+  <section class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-lg font-bold mb-3">Parallelization</h2>
+    <div class="flex gap-8 text-sm">
+      
+      <div>
+        <span class="text-gray-500 text-xs uppercase tracking-wider">Mode</span>
+        <p class="font-mono font-medium text-gray-800 mt-1">benchmark-parallel</p>
+      </div>
+      
+      
+      <div>
+        <span class="text-gray-500 text-xs uppercase tracking-wider">Max concurrent tasks</span>
+        <p class="font-bold text-gray-800 mt-1">1</p>
+      </div>
+      
+    </div>
+  </section>
+  
 
   <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
   <section class="rounded-xl border border-gray-200 overflow-hidden">
@@ -262,7 +314,7 @@
       <h2 class="text-sm font-semibold text-gray-200 tracking-wide uppercase">Registry Entry (YAML)</h2>
       <div class="flex items-center gap-3">
         
-        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/bfcl.yaml" target="_blank" rel="noopener"
+        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/waa.yaml" target="_blank" rel="noopener"
            class="text-xs text-gray-400 hover:text-indigo-300 underline">View on GitHub →</a>
         
         <button
@@ -271,45 +323,40 @@
       </div>
     </div>
     <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
-      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: bfcl
-name: "Berkeley Function Calling Leaderboard"
-version: "0.1.0"
+      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: waa
+name: "WindowsAgentArena"
+version: "0.1.2"
 description: >
-  The Berkeley Function Calling Leaderboard (BFCL v4) ported to the CUBE
-  protocol — the recognized benchmark for evaluating an LLM's ability to call
-  functions/tools. This cube covers the Python single-turn, AST-scored
-  categories (3491 tasks): the agent reads a user query plus a per-task set of
-  function schemas and emits the function call(s) it would make, which are
-  matched against BFCL's ground truth (abstract-syntax-tree argument matching,
-  plus presence/absence scoring for the relevance and irrelevance categories).
-  Covers the NON_LIVE categories (simple, multiple, parallel, parallel_multiple,
-  irrelevance) and the LIVE real-world-sourced categories. Runs in-process with
-  no Docker or network, making it fast, CI- and RL-friendly. The action space is
-  data-driven: each task exposes its own function set rather than a fixed tool
-  surface. Java/JavaScript, multi-turn, and the agentic (web-search/memory)
-  categories are out of scope for this entry.
-package: bfcl-cube
-dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/bfcl-cube"
+  Windows Agent Arena (WAA) benchmarks multimodal agents on real Windows 11
+  desktop tasks across applications like File Explorer, Edge, Chrome, VLC, and
+  settings. Each task launches a Windows VM, runs setup, and evaluates the final
+  desktop state. Ported to the CUBE protocol.
+package: waa-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/windows-agent-arena-cube"
 
 authors:
 - github: recursix
   name: Alexandre Lacoste
+- github: amanjaiswal73892
+  name: Aman Jaiswal
+- github: kushasareen
+  name: Kusha Sareen
 
 legal:
-  wrapper_license: Apache-2.0
-  benchmark_license:
-    reported: Apache-2.0
-    source_url: "https://github.com/ShishirPatil/gorilla/blob/main/LICENSE"
-    verified_by_original_authors: false
+  wrapper_license: MIT
 
-paper: "https://arxiv.org/abs/2305.15334"
-getting_started_url: "https://gorilla.cs.berkeley.edu/leaderboard.html"
 tags:
-- reasoning
-- nlp
+- os
+- gui
+- desktop
+- multimodal
+
+supported_infra: [azure]
+getting_started_url: "https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/windows-agent-arena-cube"
+parallelization_mode: benchmark-parallel
+max_concurrent_tasks: 1
 status: active
-resources: []
-task_count: 3491
+task_count: 152
 has_debug_task: true
 has_debug_agent: true
 action_space: []
@@ -318,6 +365,28 @@ features:
   streaming: false
   multi_agent: false
   multi_dim_reward: false
+resources:
+- name: waa-windows-vm
+  scope: task
+  max_concurrent_agents:
+  source_url: https://huggingface.co/datasets/kushasareen/waa-windows-image/resolve/main/waa-windows-prepared.qcow2
+  source_hash:
+  default_ttl_seconds: 7200
+  bootstrap_script_extra:
+  requires: !!set {}
+  requires_kvm: true
+  os_disk_gb:
+  min_cpu_cores: 8
+  min_ram_gb: 8
+  uefi: true
+  tpm: true
+  os_type: windows
+  specialized: true
+  forwarded_ports:
+  - 9222
+  - 8080
+  _type: cube.resource.VMResourceConfig
+  type: VMResourceConfig
 </code></pre>
     </div>
   </section>

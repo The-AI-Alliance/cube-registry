@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Berkeley Function Calling Leaderboard — CUBE Registry</title>
-  <meta name="description" content="The Berkeley Function Calling Leaderboard (BFCL v4) ported to the CUBE protocol — the recognized benchmark for evaluating an LLM's ability to call functions/tools. This cube covers the Python single-t…" />
+  <title>BrowseComp — CUBE Registry</title>
+  <meta name="description" content="BrowseComp benchmark — web browsing information retrieval. The agent must find hard-to-locate facts on the live web, answering short questions that require multi-step browsing and cross-referencing ac…" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
@@ -26,7 +26,7 @@
       CUBE Registry
     </a>
     <span class="text-gray-300">/</span>
-    <span class="text-gray-700 font-medium">Berkeley Function Calling Leaderboard</span>
+    <span class="text-gray-700 font-medium">BrowseComp</span>
 
     <!-- Status badge -->
     <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-800">
@@ -41,17 +41,12 @@
   <section>
     <div class="flex items-start gap-4 flex-wrap">
       <div class="flex-1 min-w-0">
-        <h1 class="text-3xl font-extrabold text-gray-900">Berkeley Function Calling Leaderboard</h1>
-        <p class="text-sm text-gray-400 mt-1 font-mono">bfcl · v0.1.0</p>
+        <h1 class="text-3xl font-extrabold text-gray-900">BrowseComp</h1>
+        <p class="text-sm text-gray-400 mt-1 font-mono">browsercomp · v0.1.2</p>
       </div>
       
-      <a href="https://arxiv.org/abs/2305.15334" target="_blank" rel="noopener"
-         class="flex-shrink-0 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium">
-        📄 Paper
-      </a>
       
-      
-      <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener"
+      <a href="https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/browsercomp" target="_blank" rel="noopener"
          class="flex-shrink-0 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-medium">
         📖 Getting Started
       </a>
@@ -62,15 +57,13 @@
     
     <div class="flex flex-wrap gap-2 mt-3">
       
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-violet-100 text-violet-800">reasoning</span>
-      
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-cyan-100 text-cyan-800">nlp</span>
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800">web</span>
       
     </div>
     
 
     <!-- Description -->
-    <p class="mt-4 text-gray-700 leading-relaxed">The Berkeley Function Calling Leaderboard (BFCL v4) ported to the CUBE protocol — the recognized benchmark for evaluating an LLM's ability to call functions/tools. This cube covers the Python single-turn, AST-scored categories (3491 tasks): the agent reads a user query plus a per-task set of function schemas and emits the function call(s) it would make, which are matched against BFCL's ground truth (abstract-syntax-tree argument matching, plus presence/absence scoring for the relevance and irrelevance categories). Covers the NON_LIVE categories (simple, multiple, parallel, parallel_multiple, irrelevance) and the LIVE real-world-sourced categories. Runs in-process with no Docker or network, making it fast, CI- and RL-friendly. The action space is data-driven: each task exposes its own function set rather than a fixed tool surface. Java/JavaScript, multi-turn, and the agentic (web-search/memory) categories are out of scope for this entry.
+    <p class="mt-4 text-gray-700 leading-relaxed">BrowseComp benchmark — web browsing information retrieval. The agent must find hard-to-locate facts on the live web, answering short questions that require multi-step browsing and cross-referencing across sources.
 </p>
 
     <!-- Authors -->
@@ -79,8 +72,16 @@
     <p class="mt-3 text-sm text-gray-500">
       By:
       
+        <a href="https://github.com/younik" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @younik (Omar Younis)
+        </a>, 
+      
         <a href="https://github.com/recursix" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
           @recursix (Alexandre Lacoste)
+        </a>, 
+      
+        <a href="https://github.com/NicolasAG" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @NicolasAG (Nicolas Gontier)
         </a>
       
     </p>
@@ -91,7 +92,7 @@
   <section class="bg-gray-900 rounded-xl p-5">
     <p class="text-gray-400 text-sm mb-2 font-medium uppercase tracking-wider">Install</p>
     <div class="flex items-center gap-3">
-      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install bfcl-cube</code>
+      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install browsercomp-cube</code>
       <button
         class="copy-btn bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
         onclick="copyPipInstall()"
@@ -99,8 +100,8 @@
       >Copy</button>
     </div>
     <p class="text-gray-500 text-xs mt-2">
-      Version: 0.1.0 ·
-      <a href="https://pypi.org/project/bfcl-cube/0.1.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
+      Version: 0.1.2 ·
+      <a href="https://pypi.org/project/browsercomp-cube/0.1.2/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
     </p>
   </section>
 
@@ -108,7 +109,7 @@
   <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        3491
+        1266
       </div>
       <div class="text-xs text-gray-500 mt-1">Tasks</div>
     </div>
@@ -186,23 +187,10 @@
       <!-- Wrapper license -->
       <div class="flex gap-3 items-start">
         <span class="text-gray-500 w-40 flex-shrink-0">Wrapper license</span>
-        <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
+        <span class="font-mono font-medium text-gray-800">MIT</span>
       </div>
 
       <!-- Benchmark license -->
-      
-      <div class="flex gap-3 items-start">
-        <span class="text-gray-500 w-40 flex-shrink-0">Benchmark license</span>
-        <div>
-          <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
-          
-          <span class="ml-2 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium border border-yellow-200">Self-reported — verify before commercial use</span>
-          
-          
-          <a href="https://github.com/ShishirPatil/gorilla/blob/main/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
-          
-        </div>
-      </div>
       
 
       <!-- Notices -->
@@ -255,6 +243,24 @@
 
   <!-- ── Parallelization info ──────────────────────────────────────────── -->
   
+  <section class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-lg font-bold mb-3">Parallelization</h2>
+    <div class="flex gap-8 text-sm">
+      
+      <div>
+        <span class="text-gray-500 text-xs uppercase tracking-wider">Mode</span>
+        <p class="font-mono font-medium text-gray-800 mt-1">task-parallel</p>
+      </div>
+      
+      
+      <div>
+        <span class="text-gray-500 text-xs uppercase tracking-wider">Max concurrent tasks</span>
+        <p class="font-bold text-gray-800 mt-1">8</p>
+      </div>
+      
+    </div>
+  </section>
+  
 
   <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
   <section class="rounded-xl border border-gray-200 overflow-hidden">
@@ -262,7 +268,7 @@
       <h2 class="text-sm font-semibold text-gray-200 tracking-wide uppercase">Registry Entry (YAML)</h2>
       <div class="flex items-center gap-3">
         
-        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/bfcl.yaml" target="_blank" rel="noopener"
+        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/browsercomp.yaml" target="_blank" rel="noopener"
            class="text-xs text-gray-400 hover:text-indigo-300 underline">View on GitHub →</a>
         
         <button
@@ -271,45 +277,35 @@
       </div>
     </div>
     <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
-      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: bfcl
-name: "Berkeley Function Calling Leaderboard"
-version: "0.1.0"
+      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: browsercomp
+name: "BrowseComp"
+version: "0.1.2"
 description: >
-  The Berkeley Function Calling Leaderboard (BFCL v4) ported to the CUBE
-  protocol — the recognized benchmark for evaluating an LLM's ability to call
-  functions/tools. This cube covers the Python single-turn, AST-scored
-  categories (3491 tasks): the agent reads a user query plus a per-task set of
-  function schemas and emits the function call(s) it would make, which are
-  matched against BFCL's ground truth (abstract-syntax-tree argument matching,
-  plus presence/absence scoring for the relevance and irrelevance categories).
-  Covers the NON_LIVE categories (simple, multiple, parallel, parallel_multiple,
-  irrelevance) and the LIVE real-world-sourced categories. Runs in-process with
-  no Docker or network, making it fast, CI- and RL-friendly. The action space is
-  data-driven: each task exposes its own function set rather than a fixed tool
-  surface. Java/JavaScript, multi-turn, and the agentic (web-search/memory)
-  categories are out of scope for this entry.
-package: bfcl-cube
-dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/bfcl-cube"
+  BrowseComp benchmark — web browsing information retrieval. The agent must find
+  hard-to-locate facts on the live web, answering short questions that require
+  multi-step browsing and cross-referencing across sources.
+package: browsercomp-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/browsercomp"
 
 authors:
+- github: younik
+  name: Omar Younis
 - github: recursix
   name: Alexandre Lacoste
+- github: NicolasAG
+  name: Nicolas Gontier
 
 legal:
-  wrapper_license: Apache-2.0
-  benchmark_license:
-    reported: Apache-2.0
-    source_url: "https://github.com/ShishirPatil/gorilla/blob/main/LICENSE"
-    verified_by_original_authors: false
+  wrapper_license: MIT
 
-paper: "https://arxiv.org/abs/2305.15334"
-getting_started_url: "https://gorilla.cs.berkeley.edu/leaderboard.html"
 tags:
-- reasoning
-- nlp
+- web
+
+getting_started_url: "https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/browsercomp"
+parallelization_mode: task-parallel
+max_concurrent_tasks: 8
 status: active
-resources: []
-task_count: 3491
+task_count: 1266
 has_debug_task: true
 has_debug_agent: true
 action_space: []
@@ -318,6 +314,7 @@ features:
   streaming: false
   multi_agent: false
   multi_dim_reward: false
+resources: []
 </code></pre>
     </div>
   </section>
