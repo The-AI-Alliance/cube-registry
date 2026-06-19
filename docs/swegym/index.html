@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MiniWob++ — CUBE Registry</title>
-  <meta name="description" content="MiniWob++ (Mini World of Bits++) is a collection of 125 browser-based web-interaction tasks ranging from simple button clicks to multi-step form filling. The CUBE wrapper starts a local HTTP server th…" />
+  <title>SWE-Gym — CUBE Registry</title>
+  <meta name="description" content="SWE-Gym (ICML 2025) ported to the CUBE protocol — 2438 real-world Python software-engineering tasks collected with the SWE-bench methodology across 11 repositories (moto, mypy, conan, dvc, dask, pydan…" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
@@ -26,11 +26,11 @@
       CUBE Registry
     </a>
     <span class="text-gray-300">/</span>
-    <span class="text-gray-700 font-medium">MiniWob++</span>
+    <span class="text-gray-700 font-medium">SWE-Gym</span>
 
     <!-- Status badge -->
-    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">
-      Degraded
+    <span class="ml-auto inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-800">
+      Active
     </span>
   </div>
 </header>
@@ -41,17 +41,17 @@
   <section>
     <div class="flex items-start gap-4 flex-wrap">
       <div class="flex-1 min-w-0">
-        <h1 class="text-3xl font-extrabold text-gray-900">MiniWob++</h1>
-        <p class="text-sm text-gray-400 mt-1 font-mono">miniwob · v1.1.0</p>
+        <h1 class="text-3xl font-extrabold text-gray-900">SWE-Gym</h1>
+        <p class="text-sm text-gray-400 mt-1 font-mono">swegym · v0.1.0</p>
       </div>
       
-      <a href="https://arxiv.org/abs/2306.06070" target="_blank" rel="noopener"
+      <a href="https://arxiv.org/abs/2412.21139" target="_blank" rel="noopener"
          class="flex-shrink-0 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium">
         📄 Paper
       </a>
       
       
-      <a href="https://miniwob.farama.org" target="_blank" rel="noopener"
+      <a href="https://github.com/SWE-Gym/SWE-Gym" target="_blank" rel="noopener"
          class="flex-shrink-0 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-medium">
         📖 Getting Started
       </a>
@@ -62,15 +62,17 @@
     
     <div class="flex flex-wrap gap-2 mt-3">
       
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800">web</span>
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800">coding</span>
       
-      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800">gui</span>
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700">swe</span>
+      
+      <span class="text-sm px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700">docker</span>
       
     </div>
     
 
     <!-- Description -->
-    <p class="mt-4 text-gray-700 leading-relaxed">MiniWob++ (Mini World of Bits++) is a collection of 125 browser-based web-interaction tasks ranging from simple button clicks to multi-step form filling. The CUBE wrapper starts a local HTTP server that serves the MiniWoB task pages and exposes them via a browser tool; each task runs independently with no shared state.
+    <p class="mt-4 text-gray-700 leading-relaxed">SWE-Gym (ICML 2025) ported to the CUBE protocol — 2438 real-world Python software-engineering tasks collected with the SWE-bench methodology across 11 repositories (moto, mypy, conan, dvc, dask, pydantic, pandas, hydra, bokeh, MONAI, modin), with the 230-instance `lite` split exposed as the official score-comparable named subset (named_subset("lite")). The agent receives a GitHub issue and a git checkout at the base commit inside a pre-built executable Docker container, and must produce a patch that makes the upstream fail_to_pass tests pass without breaking pass_to_pass.
 </p>
 
     <!-- Authors -->
@@ -79,16 +81,8 @@
     <p class="mt-3 text-sm text-gray-500">
       By:
       
-        <a href="https://github.com/younik" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
-          @younik (Omar Younis)
-        </a>, 
-      
-        <a href="https://github.com/amanjaiswal73892" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
-          @amanjaiswal73892 (Aman Jaiswal)
-        </a>, 
-      
-        <a href="https://github.com/NicolasAG" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
-          @NicolasAG (Nicolas Gontier)
+        <a href="https://github.com/recursix" class="text-gray-700 hover:text-indigo-700" target="_blank" rel="noopener">
+          @recursix (Alexandre Lacoste)
         </a>
       
     </p>
@@ -99,7 +93,7 @@
   <section class="bg-gray-900 rounded-xl p-5">
     <p class="text-gray-400 text-sm mb-2 font-medium uppercase tracking-wider">Install</p>
     <div class="flex items-center gap-3">
-      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install miniwob-cube</code>
+      <code id="pip-cmd" class="text-green-400 font-mono text-base flex-1">pip install swegym-cube</code>
       <button
         class="copy-btn bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
         onclick="copyPipInstall()"
@@ -107,8 +101,8 @@
       >Copy</button>
     </div>
     <p class="text-gray-500 text-xs mt-2">
-      Version: 1.1.0 ·
-      <a href="https://pypi.org/project/miniwob-cube/1.1.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
+      Version: 0.1.0 ·
+      <a href="https://pypi.org/project/swegym-cube/0.1.0/" class="underline hover:text-gray-300" target="_blank" rel="noopener">PyPI page</a>
     </p>
   </section>
 
@@ -116,7 +110,7 @@
   <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
       <div class="text-2xl font-bold text-indigo-700">
-        125
+        2438
       </div>
       <div class="text-xs text-gray-500 mt-1">Tasks</div>
     </div>
@@ -194,7 +188,7 @@
       <!-- Wrapper license -->
       <div class="flex gap-3 items-start">
         <span class="text-gray-500 w-40 flex-shrink-0">Wrapper license</span>
-        <span class="font-mono font-medium text-gray-800">MIT</span>
+        <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
       </div>
 
       <!-- Benchmark license -->
@@ -202,12 +196,12 @@
       <div class="flex gap-3 items-start">
         <span class="text-gray-500 w-40 flex-shrink-0">Benchmark license</span>
         <div>
-          <span class="font-mono font-medium text-gray-800">MIT</span>
+          <span class="font-mono font-medium text-gray-800">Apache-2.0</span>
           
           <span class="ml-2 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium border border-yellow-200">Self-reported — verify before commercial use</span>
           
           
-          <a href="https://github.com/Farama-Foundation/miniwob-plusplus/blob/master/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
+          <a href="https://github.com/SWE-Gym/SWE-Gym/blob/main/LICENSE" class="ml-2 text-indigo-600 hover:underline text-xs" target="_blank" rel="noopener">Source →</a>
           
         </div>
       </div>
@@ -215,6 +209,20 @@
 
       <!-- Notices -->
       
+      
+      <div>
+        <p class="text-gray-500 mb-2">Notices</p>
+        <div class="space-y-2">
+          
+          <div class="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+            <span class="text-xs font-medium text-orange-700 font-mono">Third Party Data</span>
+            <p class="text-gray-700 text-sm mt-0.5">Wraps the third-party SWE-Gym dataset (https://huggingface.co/datasets/SWE-Gym/SWE-Gym) and the community-published per-instance evaluation images under the xingyaoww/sweb.eval.x86_64.* Docker Hub namespace.
+</p>
+            
+          </div>
+          
+        </div>
+      </div>
       
     </div>
 
@@ -263,19 +271,6 @@
 
   <!-- ── Parallelization info ──────────────────────────────────────────── -->
   
-  <section class="bg-white rounded-xl border border-gray-200 p-5">
-    <h2 class="text-lg font-bold mb-3">Parallelization</h2>
-    <div class="flex gap-8 text-sm">
-      
-      <div>
-        <span class="text-gray-500 text-xs uppercase tracking-wider">Mode</span>
-        <p class="font-mono font-medium text-gray-800 mt-1">task-parallel</p>
-      </div>
-      
-      
-    </div>
-  </section>
-  
 
   <!-- ── Raw YAML ─────────────────────────────────────────────────────────── -->
   <section class="rounded-xl border border-gray-200 overflow-hidden">
@@ -283,7 +278,7 @@
       <h2 class="text-sm font-semibold text-gray-200 tracking-wide uppercase">Registry Entry (YAML)</h2>
       <div class="flex items-center gap-3">
         
-        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/miniwob.yaml" target="_blank" rel="noopener"
+        <a href="https://github.com/The-AI-Alliance/cube-registry/blob/main/entries/swegym.yaml" target="_blank" rel="noopener"
            class="text-xs text-gray-400 hover:text-indigo-300 underline">View on GitHub →</a>
         
         <button
@@ -292,53 +287,56 @@
       </div>
     </div>
     <div class="bg-gray-950 overflow-x-auto max-h-[32rem] overflow-y-auto">
-      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: miniwob
-name: "MiniWob++"
-version: "1.1.0"
+      <pre class="p-5 text-xs leading-relaxed m-0"><code id="yaml-code" class="language-yaml">id: swegym
+name: "SWE-Gym"
+version: "0.1.0"
 description: >
-  MiniWob++ (Mini World of Bits++) is a collection of 125 browser-based
-  web-interaction tasks ranging from simple button clicks to multi-step form
-  filling. The CUBE wrapper starts a local HTTP server that serves the MiniWoB
-  task pages and exposes them via a browser tool; each task runs independently
-  with no shared state.
-package: miniwob-cube
-dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/miniwob"
+  SWE-Gym (ICML 2025) ported to the CUBE protocol — 2438 real-world Python
+  software-engineering tasks collected with the SWE-bench methodology across
+  11 repositories (moto, mypy, conan, dvc, dask, pydantic, pandas, hydra,
+  bokeh, MONAI, modin), with the 230-instance `lite` split exposed as the
+  official score-comparable named subset (named_subset("lite")). The agent
+  receives a GitHub issue and a git checkout at the base commit inside a
+  pre-built executable Docker container, and must produce a patch that makes
+  the upstream fail_to_pass tests pass without breaking pass_to_pass.
+package: swegym-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/swegym-cube"
 
 authors:
-- github: younik
-  name: Omar Younis
-- github: amanjaiswal73892
-  name: Aman Jaiswal
-- github: NicolasAG
-  name: Nicolas Gontier
+- github: recursix
+  name: Alexandre Lacoste
 
 legal:
-  wrapper_license: MIT
+  wrapper_license: Apache-2.0
   benchmark_license:
-    reported: MIT
-    source_url: "https://github.com/Farama-Foundation/miniwob-plusplus/blob/master/LICENSE"
-
+    reported: Apache-2.0
+    source_url: "https://github.com/SWE-Gym/SWE-Gym/blob/main/LICENSE"
     verified_by_original_authors: false
+  notices:
+  - type: third_party_data
+    description: >
+      Wraps the third-party SWE-Gym dataset
+      (https://huggingface.co/datasets/SWE-Gym/SWE-Gym) and the
+      community-published per-instance evaluation images under the
+      xingyaoww/sweb.eval.x86_64.* Docker Hub namespace.
+
+paper: "https://arxiv.org/abs/2412.21139"
+getting_started_url: "https://github.com/SWE-Gym/SWE-Gym"
 tags:
-- web
-- gui
-
-paper: "https://arxiv.org/abs/2306.06070"
-getting_started_url: "https://miniwob.farama.org"
-parallelization_mode: task-parallel
-
-# Fields below are set by CI — do not edit manually.
-status: degraded
-task_count: 125
+- coding
+- swe
+- docker
+status: active
+resources: []
+task_count: 2438
 has_debug_task: true
 has_debug_agent: true
-resources: []
+action_space: []
 features:
   async: false
   streaming: false
   multi_agent: false
   multi_dim_reward: false
-action_space: []
 </code></pre>
     </div>
   </section>
