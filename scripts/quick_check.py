@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import importlib.metadata  # explicit so importlib.metadata.entry_points works on Python ≥ 3.10
+import importlib.util  # explicit so importlib.util.find_spec works for browser detection
 import inspect
 import json
 import re
@@ -70,7 +71,9 @@ def validate_schema(entry: dict, schema: dict) -> list[str]:
     return [f"{'.'.join(str(p) for p in e.path) or '<root>'}: {e.message}" for e in errors]
 
 
-def pip_install_package(package: str, version: str, dev_install_url: str | None = None) -> tuple[bool, str]:
+def pip_install_package(
+    package: str, version: str, dev_install_url: str | None = None
+) -> tuple[bool, str]:
     """Install package==version from PyPI, falling back to dev_install_url if PyPI fails."""
     pkg_spec = f"{package}=={version}"
     print(f"  Installing {pkg_spec} ...")
@@ -102,7 +105,10 @@ def pip_install_package(package: str, version: str, dev_install_url: str | None 
             if result.returncode == 0:
                 print(f"  Installed from dev_install_url (package not yet on PyPI).")
                 return True, ""
-            return False, f"PyPI failed:\n{pypi_err}\n\ndev_install_url also failed:\n{result.stderr}"
+            return (
+                False,
+                f"PyPI failed:\n{pypi_err}\n\ndev_install_url also failed:\n{result.stderr}",
+            )
         except subprocess.TimeoutExpired:
             return False, "dev_install_url install timed out after 10 minutes"
         except Exception as e:
@@ -245,7 +251,9 @@ def introspect_benchmark(benchmark_cls: Any, package: str) -> dict[str, Any]:
     derived["has_debug_task"] = has_debug_task
 
     # --- has_debug_agent: module-level make_debug_agent() ---
-    derived["has_debug_agent"] = mod is not None and callable(getattr(mod, "make_debug_agent", None))
+    derived["has_debug_agent"] = mod is not None and callable(
+        getattr(mod, "make_debug_agent", None)
+    )
     print(f"  has_debug_agent: {derived['has_debug_agent']}")
 
     # --- resources: try instantiation; fall back to class-level default on failure ---
@@ -257,7 +265,9 @@ def introspect_benchmark(benchmark_cls: Any, package: str) -> dict[str, Any]:
         benchmark = benchmark_cls()
         resources_list = list(benchmark.resources) if hasattr(benchmark, "resources") else []
     except Exception as inst_err:
-        print(f"  ::warning::Benchmark() instantiation failed ({inst_err}); falling back to class-level resources default.")
+        print(
+            f"  ::warning::Benchmark() instantiation failed ({inst_err}); falling back to class-level resources default."
+        )
         try:
             field_info = getattr(benchmark_cls, "model_fields", {}).get("resources")
             if field_info is not None:
@@ -273,6 +283,35 @@ def introspect_benchmark(benchmark_cls: Any, package: str) -> dict[str, Any]:
     except Exception as e:
         print(f"  ::warning::Could not serialize benchmark.resources: {e}")
         derived["resources"] = []
+
+    # --- infra_class: offline | docker | browser | vm (drives how slow-check runs) ---
+    # vm if any benchmark-level VM resource; else docker if any task declares a
+    # per-task container_config; else browser if the cube pulls in playwright (an
+    # in-process browser, e.g. miniwob — needs the chromium binary, not a daemon);
+    # else offline. `any(...)` short-circuits, so this is cheap even for benchmarks
+    # with thousands of tasks.
+    #
+    # Persisted (not derived at slow-check time) on purpose: the offline/docker
+    # split needs each task's container_config, which requires importing the cube —
+    # and that import must stay on the quick-check side of the security boundary
+    # (slow-check never imports the benchmark package). Same pattern as task_count.
+    # Matches slow_check.resolve_infra_class() exactly (== "VMResourceConfig").
+    infra_class = "offline"
+    if any(r.get("type") == "VMResourceConfig" for r in derived["resources"]):
+        infra_class = "vm"
+    else:
+        task_md = getattr(benchmark_cls, "task_metadata", {}) or {}
+        if any(getattr(m, "container_config", None) is not None for m in task_md.values()):
+            infra_class = "docker"
+        elif importlib.util.find_spec("playwright") is not None:
+            # TODO(cube-standard#238): this is a transitive-dependency proxy, unlike vm/docker
+            # which read the cube's DECLARED contract (VMResourceConfig / container_config).
+            # It misroutes an offline cube that vendors playwright, and misses a browser cube
+            # on a non-playwright driver. The durable fix is a cube-declared browser-need in
+            # cube-standard's ResourceConfig — track before infra_class grows a 5th member.
+            infra_class = "browser"
+    derived["infra_class"] = infra_class
+    print(f"  infra_class: {infra_class}")
 
     # --- features ---
     features: dict[str, bool] = {
@@ -350,7 +389,9 @@ def check_verified_by_original_authors(
     return any(h in known for h in all_handles)
 
 
-def write_derived_fields(entry_path: Path, entry: dict, derived: dict, pr_author: str | None) -> None:
+def write_derived_fields(
+    entry_path: Path, entry: dict, derived: dict, pr_author: str | None
+) -> None:
     """
     Write CI-derived fields back to the YAML file, preserving comments.
     Sets status to 'active' if not already set to 'archived'.
@@ -380,8 +421,15 @@ def write_derived_fields(entry_path: Path, entry: dict, derived: dict, pr_author
         doc["status"] = "active"
 
     # Core CI-derived fields
-    for field in ("resources", "task_count", "has_debug_task", "has_debug_agent",
-                  "action_space", "features"):
+    for field in (
+        "resources",
+        "task_count",
+        "has_debug_task",
+        "has_debug_agent",
+        "action_space",
+        "features",
+        "infra_class",
+    ):
         if derived.get(field) is not None:
             doc[field] = derived[field]
 

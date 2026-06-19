@@ -32,6 +32,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -112,14 +113,120 @@ def load_entry(entry_path: Path) -> dict:
         return yaml.load(f)
 
 
-def run_docker_debug_episode(entry: dict, provider: str) -> dict[str, Any]:
-    """
-    Run a debug episode for a Docker-native benchmark.
+# ── Isolated Docker-in-Docker (for docker-native cubes) ────────────────────────
+_DIND_NET = "cube-slowcheck-net"
+_DIND_NAME = "cube-slowcheck-dind"
+_DIND_IMG = "docker:27-dind"
+_DOCKER_CLI_VERSION = "27.5.1"
 
-    Security: benchmark code (pip install + Python execution) runs inside a
-    throwaway Docker container.  No cloud credentials are forwarded — the
-    container inherits NONE of the runner's environment variables.
-    The runner process never imports or executes benchmark code.
+# Sandbox base images. Offline/docker cubes use plain slim; browser cubes use the
+# official Playwright image, whose system libs (the t64-era chromium deps that
+# `playwright install --with-deps` can't resolve on Debian) are prebaked. py3.12
+# (noble) matches our pipeline; the image's bundled playwright version is irrelevant
+# — `playwright install chromium` re-fetches to match whatever the cube pins.
+# MAINTENANCE: pinned for reproducibility; the image only supplies system libs (which
+# age slowly), so a stale tag is low-risk, but bump it on a periodic cadence so the
+# prebaked libs don't fall behind a cube's newer chromium. Keep the noble-py3.12 line.
+_SLIM_IMG = "python:3.12-slim"
+_BROWSER_IMG = "mcr.microsoft.com/playwright/python:v1.49.1-noble"
+
+
+def _start_dind() -> None:
+    """Start an isolated Docker-in-Docker daemon on a private network.
+
+    The cube's per-task containers run inside this throwaway, secret-less daemon —
+    never on the host (no host docker.sock is ever mounted). ``--privileged`` is
+    confined to this disposable nested daemon. Idempotent (clears any prior leak
+    before creating) and self-cleaning on failure, so a partial start never
+    leaves an orphaned privileged container or network behind.
+    """
+    _teardown_dind()  # idempotent: clear any leftover container/network first
+    try:
+        subprocess.run(["docker", "network", "create", _DIND_NET], check=True, capture_output=True)
+        subprocess.run(
+            [
+                "docker",
+                "run",
+                "-d",
+                "--privileged",
+                "--name",
+                _DIND_NAME,
+                "--network",
+                _DIND_NET,
+                "--network-alias",
+                "dind",
+                "-e",
+                "DOCKER_TLS_CERTDIR=",  # plain TCP within the private network
+                _DIND_IMG,
+                "dockerd",
+                "--host=tcp://0.0.0.0:2375",
+            ],
+            check=True,
+            capture_output=True,
+        )
+        for _ in range(60):
+            ready = subprocess.run(
+                ["docker", "exec", _DIND_NAME, "docker", "-H", "tcp://localhost:2375", "info"],
+                capture_output=True,
+            )
+            if ready.returncode == 0:
+                return
+            time.sleep(1)
+        raise RuntimeError("DinD daemon did not become ready within 60s")
+    except Exception:
+        _teardown_dind()  # never leave a half-started privileged daemon behind
+        raise
+
+
+def _teardown_dind() -> None:
+    subprocess.run(["docker", "rm", "-f", _DIND_NAME], capture_output=True)
+    subprocess.run(["docker", "network", "rm", _DIND_NET], capture_output=True)
+
+
+def resolve_infra_class(entry: dict) -> str:
+    """offline | docker | browser | vm.
+
+    Prefer the CI-derived ``infra_class`` (set by quick_check). Fall back to
+    ``resources`` (VMResourceConfig → vm); otherwise default to ``docker``, the
+    safe superset that also runs offline cubes (just with an unused DinD).
+
+    The docker default trades least-privilege for first-run correctness: an entry
+    missing ``infra_class`` (a not-yet-revalidated one, or before quick_check's
+    write-back lands in the same run) still works if it's docker-native, at the
+    cost of spinning the privileged DinD for an offline cube. This is transitional
+    — quick_check stamps ``infra_class`` on every (re)validation — so the fallback
+    is dead once entries carry the field. Revisit toward least-privilege if this
+    check is ever promoted from advisory to a required auto-merge gate.
+    """
+    ic = entry.get("infra_class")
+    if ic in ("offline", "docker", "browser", "vm"):
+        return ic
+    resources = entry.get("resources", []) or []
+    if any(r.get("type") == "VMResourceConfig" for r in resources):
+        return "vm"
+    return "docker"
+
+
+def run_docker_debug_episode(
+    entry: dict, provider: str, *, use_dind: bool = False, install_browser: bool = False
+) -> dict[str, Any]:
+    """
+    Run the debug suite (``DEBUG_SCRIPT`` → ``run_debug_suite``) in a creds-free sandbox.
+
+    Security: benchmark code (pip install + Python execution) runs inside a throwaway
+    sandbox container with NO credentials forwarded.
+
+    ``use_dind=True`` (docker-native cubes): the sandbox additionally gets the
+    ``docker`` client binary (so ``LocalInfraConfig.capabilities()`` detects docker) and
+    ``DOCKER_HOST`` → an ISOLATED Docker-in-Docker daemon, where the cube launches its
+    per-task containers. The host docker.sock is never mounted.
+
+    ``install_browser=True`` (browser cubes, e.g. miniwob): the sandbox base becomes
+    ``_BROWSER_IMG`` (system libs prebaked) and ``playwright install chromium`` fetches
+    the browser binary after pip install (NOT ``--with-deps`` — its apt step aborts on
+    Debian over Ubuntu-only font packages). No DinD, no privilege — the browser runs
+    in-process against the cube's bundled HTML. Mutually exclusive with ``use_dind``
+    (browser cubes have no per-task containers).
     """
     package = entry["package"]
     version = entry["version"]
@@ -144,37 +251,78 @@ def run_docker_debug_episode(entry: dict, provider: str) -> dict[str, Any]:
         tmp.write(DEBUG_SCRIPT)
         tmp_path = tmp.name
 
+    extra_args: list[str] = []
+    cli_prep = "true"
+    # Runs AFTER `pip install` (playwright ships with the cube's deps): fetch the
+    # chromium binary matching the cube's playwright. System libs are already in
+    # _BROWSER_IMG, so NO --with-deps (its Debian apt step can't resolve the
+    # Ubuntu-only font packages and aborts the whole install).
+    base_image = _BROWSER_IMG if install_browser else _SLIM_IMG
+    post_install = "playwright install chromium" if install_browser else "true"
+    if use_dind:
+        _start_dind()
+        extra_args = ["--network", _DIND_NET, "-e", "DOCKER_HOST=tcp://dind:2375"]
+        # Static docker *client* only (no daemon) so shutil.which("docker") succeeds.
+        _cli_url = (
+            "https://download.docker.com/linux/static/stable/"
+            f"$(uname -m)/docker-{_DOCKER_CLI_VERSION}.tgz"
+        )
+        cli_prep = (
+            "apt-get install -y -qq --no-install-recommends curl && "
+            f"curl -fsSL {_cli_url} | tar xz -C /usr/local/bin --strip-components=1 docker/docker"
+        )
+
     try:
-        print(f"  [docker-sandbox] Running debug episode for {package} (no credentials forwarded) ...")
+        print(
+            f"  [docker-sandbox] debug episode for {package} "
+            f"(use_dind={use_dind}, browser={install_browser}, no creds) ..."
+        )
         result = subprocess.run(
             [
-                "docker", "run", "--rm",
-                "--memory", "4g",
-                "--cpus", "2",
-                "--pids-limit", "512",
-                "--cap-drop", "NET_ADMIN",
-                "--cap-drop", "SYS_PTRACE",
-                "--cap-drop", "SYS_ADMIN",
-                "--security-opt", "no-new-privileges",
+                "docker",
+                "run",
+                "--rm",
+                *extra_args,
+                "--memory",
+                "8g",
+                "--cpus",
+                "4",
+                "--pids-limit",
+                "2048",
+                "--cap-drop",
+                "NET_ADMIN",
+                "--cap-drop",
+                "SYS_PTRACE",
+                "--cap-drop",
+                "SYS_ADMIN",
+                "--security-opt",
+                "no-new-privileges",
                 # Script mounted read-only; no other host paths exposed.
                 # IMPORTANT: no --env flags — runner credentials are never forwarded.
-                "-v", f"{tmp_path}:/debug_script.py:ro",
-                "python:3.12-slim",
-                "bash", "-c",
-                f"set -e && "
-                f"apt-get update -qq && apt-get install -y -qq --no-install-recommends git ca-certificates && "
+                "-v",
+                f"{tmp_path}:/debug_script.py:ro",
+                base_image,
+                "bash",
+                "-c",
+                "set -e && "
+                "apt-get update -qq && "
+                "apt-get install -y -qq --no-install-recommends git ca-certificates && "
+                f"{cli_prep} && "
                 f"pip install --quiet '{pip_target}' && "
+                f"{post_install} && "
                 f"python /debug_script.py --package {package}",
             ],
             capture_output=True,
             text=True,
-            timeout=900,
+            timeout=1800,
         )
     finally:
         Path(tmp_path).unlink(missing_ok=True)
+        if use_dind:
+            _teardown_dind()
 
     if result.returncode != 0:
-        raise RuntimeError(f"Docker debug episode failed:\n{result.stderr}")
+        raise RuntimeError(f"Docker debug episode failed:\n{result.stderr[-2000:]}")
 
     for line in reversed(result.stdout.strip().splitlines()):
         try:
@@ -182,7 +330,7 @@ def run_docker_debug_episode(entry: dict, provider: str) -> dict[str, Any]:
         except json.JSONDecodeError:
             continue
 
-    raise RuntimeError(f"No metrics JSON found in output:\n{result.stdout}")
+    raise RuntimeError(f"No metrics JSON found in output:\n{result.stdout[-2000:]}")
 
 
 def run_vm_debug_episode(entry: dict, provider: str) -> dict[str, Any]:
@@ -278,7 +426,7 @@ def needs_slow_check(entry_path: Path) -> bool:
             check=True,
         )
         diff = result.stdout
-        trigger_fields = ["version:", "package:", "image_url:", "supported_infra:"]
+        trigger_fields = ["version:", "package:", "image_url:", "supported_infra:", "infra_class:"]
         return any(field in diff for field in trigger_fields)
     except subprocess.CalledProcessError:
         # On error (e.g. first commit), always run
@@ -310,7 +458,7 @@ def main() -> None:
 
     entry_path = Path(args.entry).resolve()
 
-    print(f"=== CUBE Registry Slow Check ===")
+    print("=== CUBE Registry Slow Check ===")
     print(f"Entry: {entry_path}")
     print(f"Provider: {args.provider}")
     print()
@@ -328,13 +476,8 @@ def main() -> None:
         print("  (Pass --force to override)")
         sys.exit(0)
 
-    # Determine resource types
-    resources = entry.get("resources", []) or []
-    has_vm_resources = any(r.get("type") == "VMResourceConfig" for r in resources)
-
-    supported_infra = entry.get("supported_infra", ["aws"])
-    if args.provider not in supported_infra and args.provider not in ("docker", "local"):
-        print(f"::warning::Provider '{args.provider}' not in supported_infra {supported_infra}")
+    infra_class = resolve_infra_class(entry)
+    print(f"Infra class: {infra_class}")
 
     # Run the appropriate check
     passed = False
@@ -342,12 +485,19 @@ def main() -> None:
     metrics: dict[str, Any] = {}
 
     try:
-        if has_vm_resources and args.provider not in ("docker", "local"):
+        if infra_class == "vm" and args.provider not in ("docker", "local"):
             print(f"Running VM-based debug episode on {args.provider}...")
             metrics = run_vm_debug_episode(entry, args.provider)
         else:
-            print(f"Running Docker-based debug episode...")
-            metrics = run_docker_debug_episode(entry, args.provider)
+            # offline → plain sandbox; browser → sandbox + playwright; docker (or
+            # vm at PR-time/local, the safe default) → isolated DinD.
+            print(f"Running debug episode (infra_class={infra_class})...")
+            metrics = run_docker_debug_episode(
+                entry,
+                args.provider,
+                use_dind=(infra_class not in ("offline", "browser")),
+                install_browser=(infra_class == "browser"),
+            )
 
         passed = True
         print(f"\nMetrics: {json.dumps(metrics, indent=2)}")
@@ -355,7 +505,7 @@ def main() -> None:
     except NotImplementedError as e:
         error = str(e)
         print(f"::warning::{e}")
-        print(f"⚠️  VM slow check not yet implemented for this provider.")
+        print("⚠️  VM slow check not yet implemented for this provider.")
         # Don't fail — this is a placeholder
         sys.exit(0)
 
@@ -375,7 +525,7 @@ def main() -> None:
         print("\n✅ Slow check PASSED.")
         sys.exit(0)
     else:
-        print(f"\n❌ Slow check FAILED. Authors will be notified via GitHub issue.")
+        print("\n❌ Slow check FAILED. Authors will be notified via GitHub issue.")
         sys.exit(1)
 
 

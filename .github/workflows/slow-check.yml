@@ -5,6 +5,12 @@ on:
     branches: [main]
     paths:
       - "entries/*.yaml"
+  workflow_dispatch:
+    inputs:
+      entry:
+        description: "Entry file to (re)validate, e.g. entries/swegym.yaml"
+        required: true
+        type: string
 
 jobs:
   # ── Determine which entries need slow check ───────────────────────────────
@@ -30,57 +36,57 @@ jobs:
 
       - name: Find entries needing slow check
         id: build-matrix
+        env:
+          # Set on workflow_dispatch to (re)validate one entry on demand.
+          ENTRY_INPUT: ${{ github.event.inputs.entry }}
         run: |
           python - <<'PYEOF'
-          import subprocess, json, sys
+          import os, subprocess, json
           from pathlib import Path
+          import yaml
 
           # Trigger fields: re-run slow check if any of these changed
-          TRIGGER_FIELDS = {"version:", "package:", "image_url:", "supported_infra:"}
+          TRIGGER_FIELDS = {"version:", "package:", "image_url:", "supported_infra:", "infra_class:"}
 
-          # Get changed entry files
-          result = subprocess.run(
-              ["git", "diff", "--name-only", "HEAD~1", "HEAD", "--", "entries/*.yaml"],
-              capture_output=True, text=True
-          )
-          changed = [p for p in result.stdout.splitlines() if p.endswith(".yaml")]
+          entry_input = os.environ.get("ENTRY_INPUT", "").strip()
+          if entry_input:
+              # Manual workflow_dispatch: validate exactly this entry, no diff gate.
+              changed = [entry_input]
+              force = True
+          else:
+              result = subprocess.run(
+                  ["git", "diff", "--name-only", "HEAD~1", "HEAD", "--", "entries/*.yaml"],
+                  capture_output=True, text=True
+              )
+              changed = [p for p in result.stdout.splitlines() if p.endswith(".yaml")]
+              force = False
 
           matrix_entries = []
           for filepath in changed:
               p = Path(filepath)
               if not p.exists():
-                  continue  # deleted entry
+                  continue  # deleted / missing entry
 
-              # Check if trigger fields changed
-              diff_result = subprocess.run(
-                  ["git", "diff", "HEAD~1", "HEAD", "--", filepath],
-                  capture_output=True, text=True
-              )
-              diff = diff_result.stdout
-              if not any(f in diff for f in TRIGGER_FIELDS):
-                  print(f"Skipping {filepath}: no trigger fields changed")
-                  continue
+              if not force:
+                  diff_result = subprocess.run(
+                      ["git", "diff", "HEAD~1", "HEAD", "--", filepath],
+                      capture_output=True, text=True
+                  )
+                  if not any(f in diff_result.stdout for f in TRIGGER_FIELDS):
+                      print(f"Skipping {filepath}: no trigger fields changed")
+                      continue
 
-              # Load entry to get supported_infra
-              import yaml
               with open(filepath) as f:
                   entry = yaml.safe_load(f)
-
-              providers = entry.get("supported_infra", ["aws"])
+              providers = entry.get("supported_infra", ["local"])
               benchmark_id = entry.get("id", p.stem)
-
               for provider in providers:
-                  matrix_entries.append({
-                      "entry": filepath,
-                      "id": benchmark_id,
-                      "provider": provider,
-                  })
+                  matrix_entries.append({"entry": filepath, "id": benchmark_id, "provider": provider})
               print(f"Queued {filepath} for providers: {providers}")
 
           has_entries = len(matrix_entries) > 0
-          matrix = json.dumps({"include": matrix_entries}) if matrix_entries else json.dumps({"include": []})
-
-          with open("$GITHUB_OUTPUT", "a") as f:
+          matrix = json.dumps({"include": matrix_entries})
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"matrix={matrix}\n")
               f.write(f"has_entries={'true' if has_entries else 'false'}\n")
           PYEOF
@@ -149,9 +155,22 @@ jobs:
           git config user.name  "cube-registry-bot"
           git config user.email "cube-registry-bot@users.noreply.github.com"
           git add stress-results/ entries/
-          git diff --cached --quiet || \
-            git commit -s -m "ci: update stress results for ${{ matrix.id }} (${{ matrix.provider }})"
-          git push
+          if git diff --cached --quiet; then
+            echo "No stress-results changes to commit."
+            exit 0
+          fi
+          git commit -s -m "ci: update stress results for ${{ matrix.id }} (${{ matrix.provider }})"
+          # Parallel matrix jobs (entry × provider) push to the same branch — a bare
+          # push races and one job spuriously fails. Rebase-retry with backoff.
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin "${{ github.ref_name }}" && git push; then
+              exit 0
+            fi
+            echo "push attempt $attempt lost a race; retrying..."
+            sleep $(( (RANDOM % 5) + attempt ))
+          done
+          echo "::error::Could not push stress results after 5 attempts."
+          exit 1
 
       - name: Get entry authors on failure
         id: get-authors
@@ -185,6 +204,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Idempotent: the label may not exist yet, and `gh issue create --label`
+          # hard-fails on a missing label (swallowing the issue).
+          gh label create "slow-check-failure" \
+            --color "B60205" \
+            --description "Slow compliance check failed for a registry entry" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+
           TITLE="Slow check failed: ${{ matrix.id }} on ${{ matrix.provider }}"
           BODY="## Slow check failure
 
