@@ -1,6 +1,6 @@
 id: browsercomp
 name: "BrowseComp"
-version: "0.1.0"
+version: "0.1.1"
 description: >
   BrowseComp benchmark — web browsing information retrieval. The agent must find
   hard-to-locate facts on the live web, answering short questions that require
