@@ -35,3 +35,24 @@ def test_debug_script_takes_package_arg():
     # interpolated into the script body — the injection-safety invariant.
     assert "--package" in DEBUG_SCRIPT
     assert 'parser.add_argument("--package"' in DEBUG_SCRIPT
+
+
+from slow_check import resolve_infra_class
+
+
+def test_resolve_infra_class_prefers_explicit_field():
+    assert resolve_infra_class({"infra_class": "offline"}) == "offline"
+    assert resolve_infra_class({"infra_class": "docker"}) == "docker"
+    assert resolve_infra_class({"infra_class": "browser"}) == "browser"
+    assert resolve_infra_class({"infra_class": "vm"}) == "vm"
+
+
+def test_resolve_infra_class_vm_from_resources():
+    entry = {"resources": [{"type": "VMResourceConfig"}]}
+    assert resolve_infra_class(entry) == "vm"
+
+
+def test_resolve_infra_class_defaults_to_docker():
+    # Unknown/absent infra_class with no VM resources → docker (safe superset).
+    assert resolve_infra_class({}) == "docker"
+    assert resolve_infra_class({"resources": []}) == "docker"

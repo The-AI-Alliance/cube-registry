@@ -160,6 +160,11 @@
       "description": "CI-managed status. Authors may submit 'archived' to retire an entry; CI sets 'active' or 'degraded'.",
       "enum": ["active", "degraded", "archived"]
     },
+    "infra_class": {
+      "type": "string",
+      "description": "CI-derived: how the slow-check runs the debug suite. 'offline' (in-process), 'docker' (isolated Docker-in-Docker for per-task containers), 'browser' (in-process browser via playwright, e.g. miniwob), or 'vm'. Do not set manually.",
+      "enum": ["offline", "docker", "browser", "vm"]
+    },
     "resources": {
       "type": "array",
       "description": "CI-derived: JSON-serialized ResourceConfig objects from benchmark.resources. CI overwrites on every check.",
