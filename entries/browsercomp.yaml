@@ -1,0 +1,37 @@
+id: browsercomp
+name: "BrowseComp"
+version: "0.1.2"
+description: >
+  BrowseComp benchmark — web browsing information retrieval. The agent must find
+  hard-to-locate facts on the live web, answering short questions that require
+  multi-step browsing and cross-referencing across sources.
+package: browsercomp-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/browsercomp"
+
+authors:
+- github: younik
+  name: Omar Younis
+- github: recursix
+  name: Alexandre Lacoste
+- github: NicolasAG
+  name: Nicolas Gontier
+
+legal:
+  wrapper_license: MIT
+
+tags:
+- web
+
+getting_started_url: "https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/browsercomp"
+parallelization_mode: task-parallel
+max_concurrent_tasks: 8
+status: active
+task_count: 1266
+has_debug_task: true
+has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false
