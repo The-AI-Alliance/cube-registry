@@ -9,14 +9,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 import entry_review as er  # noqa: E402
-
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -78,7 +75,8 @@ class TestBuildContext:
     def test_includes_pypi_info_when_available(self, tmp_path, monkeypatch):
         monkeypatch.setattr(er, "REPO_ROOT", tmp_path)
         monkeypatch.setattr(
-            er, "fetch_pypi",
+            er,
+            "fetch_pypi",
             lambda pkg: {
                 "info": {
                     "summary": "a fake test benchmark",
@@ -248,9 +246,12 @@ class TestMain:
         c_out = tmp_path / "comment.md"
         rc = er.main(
             [
-                "--entry", str(entry_path),
-                "--verdict-out", str(v_out),
-                "--comment-out", str(c_out),
+                "--entry",
+                str(entry_path),
+                "--verdict-out",
+                str(v_out),
+                "--comment-out",
+                str(c_out),
             ]
         )
         assert rc == 0
@@ -278,9 +279,12 @@ class TestMain:
         c_out = tmp_path / "comment.md"
         rc = er.main(
             [
-                "--entry", str(entry_path),
-                "--verdict-out", str(v_out),
-                "--comment-out", str(c_out),
+                "--entry",
+                str(entry_path),
+                "--verdict-out",
+                str(v_out),
+                "--comment-out",
+                str(c_out),
             ]
         )
         assert rc == 0
@@ -300,9 +304,12 @@ class TestMain:
         c_out = tmp_path / "comment.md"
         rc = er.main(
             [
-                "--entry", str(entry_path),
-                "--verdict-out", str(v_out),
-                "--comment-out", str(c_out),
+                "--entry",
+                str(entry_path),
+                "--verdict-out",
+                str(v_out),
+                "--comment-out",
+                str(c_out),
             ]
         )
         assert rc == 0
@@ -311,9 +318,12 @@ class TestMain:
     def test_missing_entry_returns_error(self, tmp_path, capsys):
         rc = er.main(
             [
-                "--entry", str(tmp_path / "nope.yaml"),
-                "--verdict-out", str(tmp_path / "v.json"),
-                "--comment-out", str(tmp_path / "c.md"),
+                "--entry",
+                str(tmp_path / "nope.yaml"),
+                "--verdict-out",
+                str(tmp_path / "v.json"),
+                "--comment-out",
+                str(tmp_path / "c.md"),
             ]
         )
         assert rc == 1
@@ -331,9 +341,12 @@ class TestMain:
         entry_path = write_entry(tmp_path, minimal_entry())
         rc = er.main(
             [
-                "--entry", str(entry_path),
-                "--verdict-out", str(tmp_path / "v.json"),
-                "--comment-out", str(tmp_path / "c.md"),
+                "--entry",
+                str(entry_path),
+                "--verdict-out",
+                str(tmp_path / "v.json"),
+                "--comment-out",
+                str(tmp_path / "c.md"),
                 "--dry-run",
             ]
         )
@@ -354,3 +367,51 @@ class TestVerdictToolSchema:
     def test_verdict_enum_is_pass_or_concern(self):
         enum = er.VERDICT_TOOL["input_schema"]["properties"]["verdict"]["enum"]
         assert enum == ["PASS", "CONCERN"]
+
+
+# ── verdict normalization (model-output robustness) ─────────────────────────
+
+
+class TestNormalizeVerdict:
+    def test_well_formed_passes_through(self):
+        v = er.normalize_verdict(good_verdict())
+        assert v == good_verdict()
+
+    def test_string_checks_downgrades_to_unknown(self):
+        """The original crash: model returned `checks` as a string, not an object.
+
+        Must not raise; must downgrade to UNKNOWN (don't auto-merge on a result
+        we couldn't parse) with all checks defaulted to unverified.
+        """
+        v = er.normalize_verdict({"verdict": "PASS", "checks": "all good", "notes": "n"})
+        assert v["verdict"] == "UNKNOWN"
+        assert v["checks"] == dict.fromkeys(er.CHECK_KEYS, "unverified")
+        assert "malformed" in v["notes"]
+        # and the downstream comment renders without error
+        er.format_verdict_comment(v, "fakebench")
+
+    def test_missing_and_invalid_check_values_default_to_unverified(self):
+        v = er.normalize_verdict(
+            {
+                "verdict": "CONCERN",
+                "checks": {
+                    "description_matches_package": "fail",
+                    "no_brand_impersonation": "bogus",
+                },
+                "notes": "n",
+            }
+        )
+        assert v["verdict"] == "CONCERN"  # checks object is valid, verdict preserved
+        assert v["checks"]["description_matches_package"] == "fail"
+        assert v["checks"]["no_brand_impersonation"] == "unverified"  # invalid value
+        assert v["checks"]["wrapper_license_plausible"] == "unverified"  # missing key
+
+    def test_invalid_verdict_value_downgrades_to_unknown(self):
+        good_checks = {k: "pass" for k in er.CHECK_KEYS}
+        v = er.normalize_verdict({"verdict": "ok", "checks": good_checks, "notes": ""})
+        assert v["verdict"] == "UNKNOWN"
+
+    def test_non_dict_input_yields_full_unknown(self):
+        v = er.normalize_verdict("garbage")
+        assert v["verdict"] == "UNKNOWN"
+        assert v["checks"] == dict.fromkeys(er.CHECK_KEYS, "unverified")
