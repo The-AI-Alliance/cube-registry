@@ -35,3 +35,4 @@ features:
   streaming: false
   multi_agent: false
   multi_dim_reward: false
+resources: []
