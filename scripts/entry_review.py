@@ -50,6 +50,9 @@ CHECK_KEYS = [
     "wrapper_license_plausible",
 ]
 
+CHECK_VALUES = {"pass", "fail", "unverified"}
+VERDICT_VALUES = {"PASS", "CONCERN", "UNKNOWN"}
+
 VERDICT_TOOL = {
     "name": "submit_verdict",
     "description": "Submit the structured review verdict. Call exactly once.",
@@ -198,8 +201,40 @@ def call_claude(system_prompt: str, user_content: str, model: str) -> dict[str, 
     )
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and block.name == "submit_verdict":
-            return dict(block.input)
+            return normalize_verdict(dict(block.input))
     raise RuntimeError("Model did not call submit_verdict")
+
+
+def normalize_verdict(raw: Any) -> dict[str, Any]:
+    """Coerce a model-produced verdict into the canonical {verdict, checks, notes} shape.
+
+    Anthropic tool-use does not hard-validate tool inputs against the schema, so
+    the model can occasionally deviate — e.g. return `checks` as a string or omit
+    a key. Downstream code (format_verdict_comment, the auto-merge job) assumes the
+    documented shape, so a deviation crashes the workflow step and leaves the PR
+    with a red check and no actionable feedback. Normalizing here keeps call_claude's
+    contract: it always returns a well-formed verdict.
+
+    Unparseable structure (checks not an object) downgrades the verdict to UNKNOWN
+    so the PR routes to manual review instead of auto-merging on a result we could
+    not read. Individual missing/invalid check values default to "unverified".
+    """
+    raw = raw if isinstance(raw, dict) else {}
+    raw_checks = raw.get("checks")
+    checks_malformed = not isinstance(raw_checks, dict)
+    src = raw_checks if isinstance(raw_checks, dict) else {}
+    checks = {k: (src.get(k) if src.get(k) in CHECK_VALUES else "unverified") for k in CHECK_KEYS}
+
+    verdict = raw.get("verdict")
+    if checks_malformed or verdict not in VERDICT_VALUES:
+        verdict = "UNKNOWN"
+
+    notes = raw.get("notes") if isinstance(raw.get("notes"), str) else ""
+    if checks_malformed:
+        notes = (notes + "\n\n" if notes else "") + (
+            "_Model returned a malformed verdict structure; downgraded to UNKNOWN._"
+        )
+    return {"verdict": verdict, "checks": checks, "notes": notes}
 
 
 def format_verdict_comment(verdict: dict[str, Any], entry_id: str) -> str:
