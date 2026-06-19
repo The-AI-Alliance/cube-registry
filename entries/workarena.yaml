@@ -1,6 +1,6 @@
 id: workarena
 name: "WorkArena"
-version: "1.0.0"
+version: "1.1.0"
 description: >
   WorkArena evaluates agents on enterprise service-desk workflows inside a
   real ServiceNow Personal Developer Instance. Tasks are organized into three
