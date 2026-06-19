@@ -1,0 +1,64 @@
+id: waa
+name: "WindowsAgentArena"
+version: "0.1.2"
+description: >
+  Windows Agent Arena (WAA) benchmarks multimodal agents on real Windows 11
+  desktop tasks across applications like File Explorer, Edge, Chrome, VLC, and
+  settings. Each task launches a Windows VM, runs setup, and evaluates the final
+  desktop state. Ported to the CUBE protocol.
+package: waa-cube
+dev_install_url: "git+https://github.com/The-AI-Alliance/cube-harness#subdirectory=cubes/windows-agent-arena-cube"
+
+authors:
+- github: recursix
+  name: Alexandre Lacoste
+- github: amanjaiswal73892
+  name: Aman Jaiswal
+- github: kushasareen
+  name: Kusha Sareen
+
+legal:
+  wrapper_license: MIT
+
+tags:
+- os
+- gui
+- desktop
+- multimodal
+
+supported_infra: [azure]
+getting_started_url: "https://github.com/The-AI-Alliance/cube-harness/tree/main/cubes/windows-agent-arena-cube"
+parallelization_mode: benchmark-parallel
+max_concurrent_tasks: 1
+status: active
+task_count: 152
+has_debug_task: true
+has_debug_agent: true
+action_space: []
+features:
+  async: false
+  streaming: false
+  multi_agent: false
+  multi_dim_reward: false
+resources:
+- name: waa-windows-vm
+  scope: task
+  max_concurrent_agents:
+  source_url: https://huggingface.co/datasets/kushasareen/waa-windows-image/resolve/main/waa-windows-prepared.qcow2
+  source_hash:
+  default_ttl_seconds: 7200
+  bootstrap_script_extra:
+  requires: !!set {}
+  requires_kvm: true
+  os_disk_gb:
+  min_cpu_cores: 8
+  min_ram_gb: 8
+  uefi: true
+  tpm: true
+  os_type: windows
+  specialized: true
+  forwarded_ports:
+  - 9222
+  - 8080
+  _type: cube.resource.VMResourceConfig
+  type: VMResourceConfig
