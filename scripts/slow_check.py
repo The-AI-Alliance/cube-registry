@@ -32,7 +32,6 @@ import re
 import subprocess
 import sys
 import tempfile
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -47,6 +46,64 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = SCRIPT_DIR.parent
 ENTRIES_DIR = REPO_ROOT / "entries"
 STRESS_RESULTS_DIR = REPO_ROOT / "stress-results"
+
+# Debug episode driver, executed inside the hardened sandbox (no credentials).
+# It delegates to ``cube.testing.run_debug_suite`` — the SAME harness that
+# ``cube test`` runs — so this check can never drift from the cube-standard
+# contract. (The previous hand-rolled driver assumed a stale gym-style API:
+# ``BenchmarkConfig.setup()`` [setup() is on the live Benchmark, reached via
+# ``config.install()`` + ``config.make(infra)``], ``agent.act(obs)`` instead of
+# ``agent(obs, action_set)``, and a 4-tuple ``task.step`` return instead of an
+# ``EnvironmentOutput`` — so it failed for every compliant cube.)
+# The package name is passed as a CLI arg, never interpolated into the body.
+DEBUG_SCRIPT = """\
+import argparse, importlib, json, sys
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--package", required=True)
+args = parser.parse_args()
+
+module = importlib.import_module(args.package.replace("-", "_"))
+
+# cube-standard is a dependency of every cube, so its test harness is importable
+# here. run_debug_suite resolves get_debug_benchmark() -> BenchmarkConfig, runs
+# config.install() + config.make(infra) + episodes + benchmark.close(), and
+# returns one report dict per debug task.
+from cube.testing import build_stress_test_report, run_debug_suite
+
+results = run_debug_suite(args.package, module, print_json=False)
+if not results:
+    print("ERROR: no debug episodes ran (empty get_task_configs()?)", file=sys.stderr)
+    sys.exit(1)
+
+# On this infra a debug episode must complete and reward 1.0 — same bar as
+# `cube test` / assert_debug_tasks_reward_one.
+failures = [r for r in results if r.get("error") or not r.get("done") or r.get("reward") != 1.0]
+
+report = build_stress_test_report(args.package, results, compliance_passed=[], compliance_failed=[])
+metrics = dict(report.performance)
+metrics.update(
+    {
+        "n_tasks": len(results),
+        "mean_reward": round(sum(r.get("reward", 0.0) for r in results) / len(results), 4),
+        "all_tasks_passed": not failures,
+    }
+)
+print(json.dumps(metrics))  # parsed by the runner (last JSON line)
+
+if failures:
+    summary = [
+        {
+            "task_id": r.get("task_id"),
+            "done": r.get("done"),
+            "reward": r.get("reward"),
+            "error": r.get("error"),
+        }
+        for r in failures
+    ]
+    print("ERROR: debug suite did not pass on this infra: " + json.dumps(summary), file=sys.stderr)
+    sys.exit(1)
+"""
 
 
 def load_entry(entry_path: Path) -> dict:
@@ -79,72 +136,12 @@ def run_docker_debug_episode(entry: dict, provider: str) -> dict[str, Any]:
     # so it is safe to use directly as a pip argument.
     pip_target = dev_install_url if dev_install_url else f"{package}=={version}"
 
-    # The debug script is written to a temp file and mounted read-only into the
-    # container.  The package name is passed as a CLI argument — never interpolated
-    # into the script body — so a crafted package name cannot inject code.
-    debug_script = """\
-import importlib, time, sys, json, statistics, argparse
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--package", required=True)
-args = parser.parse_args()
-
-module_name = args.package.replace("-", "_")
-pkg = importlib.import_module(module_name)
-
-get_debug = getattr(pkg, "get_debug_benchmark", None)
-if get_debug is None:
-    print("ERROR: no get_debug_benchmark() in module", file=sys.stderr)
-    sys.exit(1)
-
-t0 = time.time()
-benchmark = get_debug()
-benchmark.setup()
-setup_time = time.time() - t0
-
-configs = list(benchmark.get_task_configs())
-if not configs:
-    print("ERROR: get_task_configs() returned no tasks", file=sys.stderr)
-    sys.exit(1)
-
-task = configs[0].make()
-t_spawn = time.time()
-obs, _ = task.reset()
-spawn_time = time.time() - t_spawn
-
-step_times = []
-make_agent = getattr(pkg, "make_debug_agent", None)
-if make_agent is not None:
-    agent = make_agent()
-    for _ in range(3):
-        t_step = time.time()
-        action = agent.act(obs)
-        step_times.append(time.time() - t_step)
-        try:
-            obs, reward, done, _ = task.step(action)
-            if done:
-                break
-        except Exception:
-            break
-
-reward, _ = task.evaluate(obs)
-task.close()
-benchmark.close()
-
-results = {
-    "setup_time_s": round(setup_time, 3),
-    "spawn_time_s": round(spawn_time, 3),
-    "step_latency_p50_s": round(statistics.median(step_times), 3) if step_times else None,
-    "step_latency_p95_s": round(sorted(step_times)[int(len(step_times) * 0.95)] if len(step_times) > 1 else step_times[0], 3) if step_times else None,
-    "step_latency_p99_s": round(sorted(step_times)[-1], 3) if step_times else None,
-    "episode_time_s": round(sum(step_times) + spawn_time, 3),
-    "final_reward": round(float(reward), 4) if reward is not None else None,
-}
-print(json.dumps(results))
-"""
-
+    # The debug script (module-level ``DEBUG_SCRIPT``) is written to a temp file
+    # and mounted read-only into the container.  The package name is passed as a
+    # CLI argument — never interpolated into the script body — so a crafted
+    # package name cannot inject code.
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
-        tmp.write(debug_script)
+        tmp.write(DEBUG_SCRIPT)
         tmp_path = tmp.name
 
     try:
