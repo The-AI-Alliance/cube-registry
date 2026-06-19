@@ -1,6 +1,6 @@
 id: waa
 name: "WindowsAgentArena"
-version: "0.1.1"
+version: "0.1.2"
 description: >
   Windows Agent Arena (WAA) benchmarks multimodal agents on real Windows 11
   desktop tasks across applications like File Explorer, Edge, Chrome, VLC, and
