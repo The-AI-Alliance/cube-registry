@@ -37,7 +37,7 @@ tags:
 - coding
 - swe
 - docker
-status: active
+status: degraded
 resources: []
 task_count: 2438
 has_debug_task: true

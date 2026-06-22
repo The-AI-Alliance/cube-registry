@@ -34,7 +34,7 @@ getting_started_url: "https://gorilla.cs.berkeley.edu/leaderboard.html"
 tags:
 - reasoning
 - nlp
-status: active
+status: degraded
 resources: []
 task_count: 3491
 has_debug_task: true
